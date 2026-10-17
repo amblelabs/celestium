@@ -24,13 +24,13 @@ loom {
 }
 
 dependencies {
-    minecraft(group = "com.mojang", name = "minecraft", version = commonMod.mc)
-    mappings(loom.layered {
-        officialMojangMappings()
-        commonMod.depOrNull("parchment")?.let { parchmentVersion ->
+    minecraft("com.mojang:minecraft:${commonMod.mc}")
+    commonMod.depOrNull("parchment")?.let { parchmentVersion ->
+        mappings(loom.layered {
+            officialMojangMappings()
             parchment("org.parchmentmc.data:parchment-${commonMod.mc}:$parchmentVersion@zip")
-        }
-    })
+        })
+    }
 
     compileOnly("org.spongepowered:mixin:0.8.5")
     modCompileOnly("net.fabricmc:fabric-loader:${commonMod.dep("fabric_loader")}")
