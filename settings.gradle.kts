@@ -18,6 +18,7 @@ pluginManagement {
 
 plugins {
     id("dev.kikugie.stonecutter") version "0.7"
+    id("dev.kikugie.loom-back-compat") version "0.4.3"
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0" // TODO(template): review
 }
 
