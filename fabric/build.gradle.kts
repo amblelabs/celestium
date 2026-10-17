@@ -12,12 +12,13 @@ stonecutter {
 
 dependencies {
     minecraft("com.mojang:minecraft:${commonMod.mc}")
-    mappings(loom.layered {
-        officialMojangMappings()
-        commonMod.depOrNull("parchment")?.let { parchmentVersion ->
+
+    commonMod.depOrNull("parchment")?.let { parchmentVersion ->
+        mappings(loom.layered {
+            officialMojangMappings()
             parchment("org.parchmentmc.data:parchment-${commonMod.mc}:$parchmentVersion@zip")
-        }
-    })
+        })
+    }
 
     modImplementation("net.fabricmc:fabric-loader:${commonMod.dep("fabric_loader")}")
     modApi("net.fabricmc.fabric-api:fabric-api:${commonMod.dep("fabric_api")}+${commonMod.mc}")

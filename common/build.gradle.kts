@@ -25,6 +25,7 @@ loom {
 
 dependencies {
     minecraft("com.mojang:minecraft:${commonMod.mc}")
+
     commonMod.depOrNull("parchment")?.let { parchmentVersion ->
         mappings(loom.layered {
             officialMojangMappings()

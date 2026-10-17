@@ -17,9 +17,17 @@ pluginManagement {
 }
 
 plugins {
-    id("dev.kikugie.stonecutter") version "0.7"
+    id("dev.kikugie.stonecutter") version "0.9.8"
     id("dev.kikugie.loom-back-compat") version "0.4.3"
-    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0" // TODO(template): review
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0" // TODO(template): review
+}
+
+gradle.beforeProject {
+    buildscript.repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        maven("https://maven.fabricmc.net/")
+    }
 }
 
 val commonVersions = providers.gradleProperty("stonecutter_enabled_common_versions").orNull?.split(",")?.map { it.trim() } ?: emptyList()
@@ -35,11 +43,11 @@ val dists = mapOf(
 val uniqueVersions = dists.values.flatten().distinct()
 
 stonecutter {
-    kotlinController = true
     centralScript = "build.gradle.kts"
 
     create(rootProject) {
         versions(*uniqueVersions.toTypedArray())
+        vcsVersion = "26.3"
 
         dists.forEach { (branchName, branchVersions) ->
             branch(branchName) {
