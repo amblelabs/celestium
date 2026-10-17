@@ -1,9 +1,9 @@
 package dev.amblelabs.celestium.platform;
 
-import dev.amblelabs.celestium.platform.services.IPlatformHelper;
+import dev.amblelabs.celestium.platform.services.PlatformHelper;
 import net.fabricmc.loader.api.FabricLoader;
 
-public class FabricPlatformHelper implements IPlatformHelper {
+public class FabricPlatformHelper implements PlatformHelper {
 
     @Override
     public String getPlatformName() {

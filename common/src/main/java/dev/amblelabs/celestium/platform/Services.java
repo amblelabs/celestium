@@ -1,6 +1,6 @@
 package dev.amblelabs.celestium.platform;
 
-import dev.amblelabs.celestium.Constants;
+import dev.amblelabs.celestium.Celestium;
 import dev.amblelabs.celestium.platform.services.PlatformHelper;
 
 import java.util.ServiceLoader;
@@ -11,7 +11,7 @@ import java.util.ServiceLoader;
 public class Services {
 
     // In this example we provide a platform helper which provides information about what platform the mod is running on.
-    // For example this can be used to check if the code is running on Forge vs Fabric, or to ask the modloader if another
+    // For example this can be used to check if the code is running on Forge vs Fabric, or to ask the mod-loader if another
     // mod is loaded.
     public static final PlatformHelper PLATFORM = load(PlatformHelper.class);
 
@@ -20,8 +20,10 @@ public class Services {
     // Inside the file you should write the fully qualified class name of the implementation to load for the platform. For
     // example our file on Forge points to ForgePlatformHelper while Fabric points to FabricPlatformHelper.
     public static <T> T load(Class<T> clazz) {
-        final T loadedService = ServiceLoader.load(clazz).findFirst().orElseThrow(() -> new NullPointerException("Failed to load service for " + clazz.getName()));
-        Constants.LOG.debug("Loaded {} for service {}", loadedService, clazz);
+        final T loadedService = ServiceLoader.load(clazz).findFirst()
+                .orElseThrow(() -> new NullPointerException("Failed to load service for " + clazz.getName()));
+
+        Celestium.LOGGER.debug("Loaded {} for service {}", loadedService, clazz);
         return loadedService;
     }
 }

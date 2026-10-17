@@ -60,8 +60,8 @@ tasks {
             "modGitHub" to commonMod.github,
             "minecraftVersion" to commonMod.propOrNull("minecraft_version"),
             "minMinecraftVersion" to commonMod.propOrNull("min_minecraft_version"),
-            "fabricLoaderVersion" to commonMod.depOrNull("fabric-loader"),
-            "fabricApiVersion" to commonMod.depOrNull("fabric-api"),
+            "fabricLoaderVersion" to commonMod.depOrNull("fabric_loader"),
+            "fabricApiVersion" to commonMod.depOrNull("fabric_api"),
             "neoForgeVersion" to commonMod.depOrNull("neoforge"),
             "forgeVersion" to commonMod.depOrNull("forge"),
             "modMenuVersion" to commonMod.depOrNull("modmenu")
@@ -73,7 +73,7 @@ tasks {
             expand(expandProps)
         }
 
-        filesMatching(listOf("pack.mcmeta", "fabric.mod.json")) {
+        filesMatching(listOf("pack.mcmeta", "fabric.mod.json", "*.mixins.json")) {
             expand(jsonExpandProps)
         }
 
