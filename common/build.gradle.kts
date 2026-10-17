@@ -1,6 +1,6 @@
 plugins {
     `multiloader-common`
-    id("fabric-loom") version "1.18-SNAPSHOT"
+    id("net.fabricmc.fabric-loom") version "1.18-SNAPSHOT"
     kotlin("jvm") version "2.2.0"
     id("com.google.devtools.ksp") version "2.2.0-2.0.2" // TODO(template): review
     id("dev.kikugie.fletching-table.fabric") version "0.1.0-alpha.14" // TODO(template): review
