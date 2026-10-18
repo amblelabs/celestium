@@ -1,0 +1,12 @@
+{
+  "type": "celestium:space_type",
+  "generator": {
+    "type": "minecraft:flat",
+    "settings": {
+      "biome": "celestium:space",
+      "lakes": false,
+      "features": false,
+      "layers": []
+    }
+  }
+}

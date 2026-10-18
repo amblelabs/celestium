@@ -1,8 +1,6 @@
 package dev.amblelabs.celestium;
 
-import dev.amblelabs.celestium.platform.Services;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.world.item.Items;
+import net.minecraft.resources.Identifier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +13,10 @@ public class Celestium {
     
     public static final String MOD_ID = "celestium";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+
+    public static Identifier id(String s) {
+        return Identifier.fromNamespaceAndPath(MOD_ID, s);
+    }
 
     // The loader specific projects are able to import and use any code from the common project. This allows you to
     // write the majority of your code here and load it from your loader specific projects. This example has some
