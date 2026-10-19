@@ -18,6 +18,14 @@
   "skybox": "overworld",
   "attributes": {
     "minecraft:gameplay/respawn_anchor_works": false,
-    "minecraft:gameplay/can_start_raid": false
+    "minecraft:gameplay/can_start_raid": false,
+    "minecraft:audio/background_music": {
+      "default": {
+        "max_delay": 0,
+        "min_delay": 0,
+        "replace_current_music": true,
+        "sound": "celestium:ambient.space"
+      }
+    }
   }
 }
