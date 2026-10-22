@@ -3,5 +3,21 @@
     "sounds": [
       "celestium:ambient/space"
     ]
+  },
+  "entity.player.breathing": {
+    "sounds": [
+      {
+      "name": "celestium:entity/player/breathing",
+      "volume": 0.7
+        }
+    ]
+  },
+  "entity.player.heartbeat": {
+    "sounds": [
+      {
+        "name": "celestium:entity/player/heartbeat",
+        "volume": 0.7
+      }
+    ]
   }
 }
