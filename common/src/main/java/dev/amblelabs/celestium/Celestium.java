@@ -1,6 +1,8 @@
 package dev.amblelabs.celestium;
 
 import dev.amblelabs.celestium.core.CelestiumBlocks;
+import dev.amblelabs.celestium.core.CelestiumEntityTypes;
+import dev.amblelabs.celestium.core.CelestiumItems;
 import dev.amblelabs.celestium.core.CelestiumSounds;
 import net.minecraft.resources.Identifier;
 
@@ -25,5 +27,9 @@ public class Celestium {
 
         CelestiumSounds.register();
         CelestiumBlocks.register();
+        CelestiumItems.register();
+
+        CelestiumEntityTypes.initialize();
+
     }
 }
