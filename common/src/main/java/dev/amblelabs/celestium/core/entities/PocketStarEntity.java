@@ -1,5 +1,6 @@
 package dev.amblelabs.celestium.core.entities;
 
+import dev.amblelabs.celestium.core.CelestiumEntityTypes;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -10,6 +11,10 @@ public class PocketStarEntity extends PathfinderMob {
 
     public PocketStarEntity(EntityType<? extends PocketStarEntity> entityType, Level level) {
         super(entityType, level);
+    }
+
+    public PocketStarEntity(Level level) {
+        this(CelestiumEntityTypes.POCKET_STAR, level);
     }
 
     public static AttributeSupplier.Builder createPocketStarAttributes() {

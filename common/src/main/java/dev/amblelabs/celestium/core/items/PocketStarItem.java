@@ -28,7 +28,7 @@ public class PocketStarItem extends Item{
             double y = player.getEyeY() - 0.1;
             double z = player.getZ() + look.z;
 
-            PocketStarEntity star = new PocketStarEntity(CelestiumEntityTypes.POCKET_STAR, level);
+            PocketStarEntity star = new PocketStarEntity(level);
             star.setPos(x, y, z);
             serverLevel.addFreshEntity(star);
 

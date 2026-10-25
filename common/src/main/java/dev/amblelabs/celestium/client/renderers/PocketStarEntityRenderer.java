@@ -22,7 +22,7 @@ import org.joml.Vector3f;
 public class PocketStarEntityRenderer extends MobRenderer<PocketStarEntity, LivingEntityRenderState, PocketStarEntityModel> {
 
     private static final Identifier TEXTURE = Celestium.id("textures/entity/pocket_star.png");
-    private static final RenderType EMISSIVE = RenderTypes.eyes(Celestium.id("textures/entity/pocket_star.png"));
+    private static final RenderType EMISSIVE = RenderTypes.eyes(TEXTURE);
     private static final RenderType RAYS_RENDER_TYPE = RenderTypes.dragonRays();
 
     private static final float HALF_SQRT_3 = (float)(Mth.sqrt(3.0F) / 2.0F);
@@ -30,6 +30,10 @@ public class PocketStarEntityRenderer extends MobRenderer<PocketStarEntity, Livi
     private static final float BEAM_POS_Y = 1.45F;
     private static final float BEAM_POS_Z = 0.0F;
     private static final float BEAM_LENGTH = 5.0F;
+
+    private static final int RAY_INNER_COLOR = ARGB.white(255);
+    private static final int RAY_OUTER_COLOR = 24721935;
+    private static final int RAY_COUNT = 15;
 
     public PocketStarEntityRenderer(EntityRendererProvider.Context context) {
         super(context, new PocketStarEntityModel(context.bakeLayer(PocketStarEntityModel.LAYER_LOCATION)), 0.3f);
@@ -75,8 +79,6 @@ public class PocketStarEntityRenderer extends MobRenderer<PocketStarEntity, Livi
     private static void submitRays(final PoseStack poseStack, final float timeInTicks, final SubmitNodeCollector submitNodeCollector, final RenderType renderType) {
         submitNodeCollector.submitCustomGeometry(poseStack, renderType, (pose, buffer) -> {
             float pulse = Mth.sin(timeInTicks * 0.2F) * 0.5F + 0.5F;
-            int innerColor = ARGB.colorFromFloat(1.0F, 1.0F, 1.0F, 1.0F);
-            int outerColor = 24721935;
 
             RandomSource random = RandomSource.createThreadLocalInstance(432L);
 
@@ -86,9 +88,7 @@ public class PocketStarEntityRenderer extends MobRenderer<PocketStarEntity, Livi
             Vector3f outerBottom = new Vector3f();
             Quaternionf rayRotation = new Quaternionf();
 
-            int rayCount = 15;
-
-            for(int i = 0; i < rayCount; ++i) {
+            for(int i = 0; i < RAY_COUNT; ++i) {
                 rayRotation.rotationXYZ(random.nextFloat() * ((float)Mth.PI * 2F), random.nextFloat() * ((float)Mth.PI * 2F), random.nextFloat() * ((float)Mth.PI * 2F))
                         .rotateXYZ(random.nextFloat() * ((float)Mth.PI * 2F), random.nextFloat() * ((float)Mth.PI * 2F), random.nextFloat() * ((float)Mth.PI * 2F) + timeInTicks * ((float)Mth.PI / 180F));
 
@@ -100,17 +100,17 @@ public class PocketStarEntityRenderer extends MobRenderer<PocketStarEntity, Livi
                 outerRight.set(HALF_SQRT_3 * width, length, -0.5F * width);
                 outerBottom.set(0.0F, length, width);
 
-                buffer.addVertex(pose, origin).setColor(innerColor);
-                buffer.addVertex(pose, outerLeft).setColor(outerColor);
-                buffer.addVertex(pose, outerRight).setColor(outerColor);
+                buffer.addVertex(pose, origin).setColor(RAY_INNER_COLOR);
+                buffer.addVertex(pose, outerLeft).setColor(RAY_OUTER_COLOR);
+                buffer.addVertex(pose, outerRight).setColor(RAY_OUTER_COLOR);
 
-                buffer.addVertex(pose, origin).setColor(innerColor);
-                buffer.addVertex(pose, outerRight).setColor(outerColor);
-                buffer.addVertex(pose, outerBottom).setColor(outerColor);
+                buffer.addVertex(pose, origin).setColor(RAY_INNER_COLOR);
+                buffer.addVertex(pose, outerRight).setColor(RAY_OUTER_COLOR);
+                buffer.addVertex(pose, outerBottom).setColor(RAY_OUTER_COLOR);
 
-                buffer.addVertex(pose, origin).setColor(innerColor);
-                buffer.addVertex(pose, outerBottom).setColor(outerColor);
-                buffer.addVertex(pose, outerLeft).setColor(outerColor);
+                buffer.addVertex(pose, origin).setColor(RAY_INNER_COLOR);
+                buffer.addVertex(pose, outerBottom).setColor(RAY_OUTER_COLOR);
+                buffer.addVertex(pose, outerLeft).setColor(RAY_OUTER_COLOR);
             }
         });
     }

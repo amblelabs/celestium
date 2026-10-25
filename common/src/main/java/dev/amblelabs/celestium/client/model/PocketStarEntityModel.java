@@ -11,7 +11,7 @@ import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 public class PocketStarEntityModel extends EntityModel<LivingEntityRenderState> {
 
     public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(
-            Celestium.id("pocketstarmodel"), "main"
+            Celestium.id("pocket_star_model"), "main"
     );
 
     private final ModelPart main;
