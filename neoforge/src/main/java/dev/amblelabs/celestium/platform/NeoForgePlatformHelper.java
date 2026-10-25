@@ -13,6 +13,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class NeoForgePlatformHelper implements PlatformHelper {
@@ -62,17 +63,17 @@ public class NeoForgePlatformHelper implements PlatformHelper {
         }
 
         @Override
+        public <T extends B> Holder<T> registerHolder(Identifier id, Function<Identifier, T> provider) {
+            return get(this.namespace).register(id, provider::apply);
+        }
+
+        @Override
+        public <T extends B> Supplier<T> register(Identifier id, Function<Identifier, T> t) {
+            return get(this.namespace).register(id, t.apply(id));
+        }
+
+        @Override
         public <T extends B> Supplier<T> register(Identifier loc, Supplier<T> supplier) {
-            return get(loc).register(loc.getPath(), supplier);
-        }
-
-        @Override
-        public <T extends B> Holder<B> registerHolder(String id, Supplier<T> provider) {
-            return get(this.namespace).register(id, provider);
-        }
-
-        @Override
-        public <T extends B> Holder<B> registerHolder(Identifier loc, Supplier<T> supplier) {
             return get(loc).register(loc.getPath(), supplier);
         }
 

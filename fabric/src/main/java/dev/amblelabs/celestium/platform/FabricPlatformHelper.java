@@ -9,6 +9,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class FabricPlatformHelper implements PlatformHelper {
@@ -42,17 +43,17 @@ public class FabricPlatformHelper implements PlatformHelper {
     public record FabricRegistrar<B>(String namespace, Registry<B> registry) implements Registrar<B> {
 
         @Override
-        public <T extends B> Supplier<T> register(Identifier id, Supplier<T> provider) {
-            T value = provider.get();
+        public <T extends B> Supplier<T> register(Identifier id, Function<Identifier, T> t) {
+            T value = t.apply(id);
             Registry.register(registry, id, value);
             return () -> value;
         }
 
         @Override
-        public <T extends B> Holder<B> registerHolder(Identifier id, Supplier<T> provider) {
-            T value = provider.get();
+        public <T extends B> Holder<T> registerHolder(Identifier id, Function<Identifier, T> provider) {
+            T value = provider.apply(id);
             Registry.register(registry, id, value);
-            return registry.wrapAsHolder(value);
+            return (Holder<T>) registry.wrapAsHolder(value);
         }
 
         @Override
