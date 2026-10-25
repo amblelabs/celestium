@@ -2,6 +2,9 @@ package dev.amblelabs.celestium.core;
 
 import dev.amblelabs.celestium.Celestium;
 import dev.amblelabs.celestium.core.blocks.TestSpongeBlock;
+import dev.amblelabs.celestium.platform.Services;
+import dev.amblelabs.celestium.platform.services.PlatformHelper;
+import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -18,23 +21,21 @@ import java.util.function.Function;
 
 public class CelestiumBlocks {
 
-    public static final Block TEST_SPONGE =
-            registerBlock("test_sponge",
+    private static final PlatformHelper.Registrar<Block> REGISTRAR = Services.PLATFORM.createRegistrar(Registries.BLOCK);
+
+    public static final Holder<Block> TEST_SPONGE = block("test_sponge",
                     properties -> new TestSpongeBlock(properties
                             .strength(0.5F)
                             .sound(SoundType.STONE)
                     ));
 
-    private static <T extends Block> T registerBlock(String name, Function<BlockBehaviour.Properties, T> function) {
-        Identifier id = Identifier.fromNamespaceAndPath(Celestium.MOD_ID, name);
-        ResourceKey<Block> blockKey = ResourceKey.create(Registries.BLOCK, id);
+    private static <T extends Block> Holder<T> block(String name, Function<BlockBehaviour.Properties, T> function) {
+        return REGISTRAR.registerHolder(name, id -> {
+            ResourceKey<Block> blockKey = ResourceKey.create(Registries.BLOCK, id);
 
-        BlockBehaviour.Properties properties = BlockBehaviour.Properties.of().setId(blockKey);
-        T block = function.apply(properties);
-
-        Registry.register(BuiltInRegistries.BLOCK, blockKey, block);
-        registerBlockItem(name, block);
-        return block;
+            BlockBehaviour.Properties properties = BlockBehaviour.Properties.of().setId(blockKey);
+            return function.apply(properties);
+        });
     }
 
     private static <T extends Block> void registerBlockItem(String name, T block) {
@@ -49,5 +50,6 @@ public class CelestiumBlocks {
     }
 
     public static void register() {
+        REGISTRAR.registerAll();
     }
 }
