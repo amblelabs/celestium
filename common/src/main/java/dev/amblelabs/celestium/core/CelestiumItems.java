@@ -9,19 +9,24 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
 
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 public class CelestiumItems {
 
-    public static final Item POCKET_STAR =
+    public static final Supplier<Item> POCKET_STAR =
             registerItem("pocket_star", id -> new PocketStarItem(
                     new Item.Properties()
                             .setId(ResourceKey.create(Registries.ITEM, id))
+
             ));
 
-    private static Item registerItem(String name, java.util.function.Function<Identifier, Item> factory) {
-        Identifier id = Identifier.fromNamespaceAndPath(Celestium.MOD_ID, name);
+    private static Supplier<Item> registerItem(String name, Function<Identifier, Item> factory) {
+        Identifier id = Celestium.id(name);
+
         Item item = factory.apply(id);
         Registry.register(BuiltInRegistries.ITEM, id, item);
-        return item;
+        return () -> item;
     }
 
     public static void register() {

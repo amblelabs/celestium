@@ -26,7 +26,6 @@ public class CelestiumFabric implements ModInitializer {
         Celestium.init();
 
         register(CelestiumEntityTypeIds.POCKET_STAR, CelestiumEntityTypes.POCKET_STAR, PocketStarEntity.createPocketStarAttributes());
-
     }
 
     private static <T extends Entity> EntityType<T> register(ResourceKey<EntityType<?>> key, EntityType<T> entity) {
@@ -38,5 +37,4 @@ public class CelestiumFabric implements ModInitializer {
         FabricDefaultAttributeRegistry.register(type, attributes);
         return type;
     }
-
 }

@@ -25,7 +25,7 @@ public class PocketStarEntityRenderer extends MobRenderer<PocketStarEntity, Livi
     private static final RenderType EMISSIVE = RenderTypes.eyes(Celestium.id("textures/entity/pocket_star.png"));
     private static final RenderType RAYS_RENDER_TYPE = RenderTypes.dragonRays();
 
-    private static final float HALF_SQRT_3 = (float)(Math.sqrt(3.0F) / 2.0F);
+    private static final float HALF_SQRT_3 = (float)(Mth.sqrt(3.0F) / 2.0F);
     private static final float BEAM_POS_X = 0.0F;
     private static final float BEAM_POS_Y = 1.45F;
     private static final float BEAM_POS_Z = 0.0F;
@@ -59,7 +59,6 @@ public class PocketStarEntityRenderer extends MobRenderer<PocketStarEntity, Livi
 
     @Override
     public void submit(LivingEntityRenderState state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera) {
-
         float starY = getY(state.ageInTicks);
         poseStack.pushPose();
         poseStack.translate(BEAM_POS_X, BEAM_POS_Y + starY, BEAM_POS_Z);
@@ -121,5 +120,4 @@ public class PocketStarEntityRenderer extends MobRenderer<PocketStarEntity, Livi
         hh = (hh * hh + hh) * 0.4F;
         return hh - 1.4F;
     }
-
 }

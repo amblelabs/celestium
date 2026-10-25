@@ -27,6 +27,4 @@ public class PocketStarEntity extends PathfinderMob {
     public boolean isNoGravity() {
         return true;
     }
-
-
 }
