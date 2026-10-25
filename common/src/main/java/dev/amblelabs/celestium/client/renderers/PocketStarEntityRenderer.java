@@ -89,8 +89,8 @@ public class PocketStarEntityRenderer extends MobRenderer<PocketStarEntity, Livi
             int rayCount = 15;
 
             for(int i = 0; i < rayCount; ++i) {
-                rayRotation.rotationXYZ(random.nextFloat() * ((float)Math.PI * 2F), random.nextFloat() * ((float)Math.PI * 2F), random.nextFloat() * ((float)Math.PI * 2F))
-                        .rotateXYZ(random.nextFloat() * ((float)Math.PI * 2F), random.nextFloat() * ((float)Math.PI * 2F), random.nextFloat() * ((float)Math.PI * 2F) + timeInTicks * ((float)Math.PI / 180F));
+                rayRotation.rotationXYZ(random.nextFloat() * ((float)Mth.PI * 2F), random.nextFloat() * ((float)Mth.PI * 2F), random.nextFloat() * ((float)Mth.PI * 2F))
+                        .rotateXYZ(random.nextFloat() * ((float)Mth.PI * 2F), random.nextFloat() * ((float)Mth.PI * 2F), random.nextFloat() * ((float)Mth.PI * 2F) + timeInTicks * ((float)Mth.PI / 180F));
 
                 pose.rotate(rayRotation);
                 float length = BEAM_LENGTH * (1.0F + pulse * 0.2F);
