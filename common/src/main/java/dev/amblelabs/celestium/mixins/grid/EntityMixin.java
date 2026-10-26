@@ -1,7 +1,6 @@
 package dev.amblelabs.celestium.mixins.grid;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
@@ -14,6 +13,7 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
@@ -63,6 +63,11 @@ public abstract class EntityMixin implements GridRider {
    }
 
    @Override
+   public @Nullable SubGrid celestium$attachedGrid() {
+      return attachedGrid;
+   }
+
+   @Override
    public void celestium$waitForGrid(UUID gridId, int timeout) {
       this.pendingGrid = gridId;
       this.pendingGridTimeout = timeout;
@@ -88,9 +93,7 @@ public abstract class EntityMixin implements GridRider {
             this.pendingOffset = null;
          } else if (--this.pendingGridTimeout > 0 && this.attachedGrid == null) {
             Vec3 motion = this.getDeltaMovement();
-            if (motion.y < 0) {
-               this.setDeltaMovement(motion.x, 0, motion.z);
-            }
+            if (motion.y < 0) this.setDeltaMovement(motion.x, 0, motion.z);
          } else {
             this.pendingGrid = null;
             this.pendingOffset = null;
@@ -121,18 +124,14 @@ public abstract class EntityMixin implements GridRider {
       SubGrid grid = this.attachedGrid != null ? this.attachedGrid : SubGridCollisions.findGridBelow(this.asEntity());
       UUID gridId = grid != null ? grid.id() : this.pendingGrid;
       Vec3 offset = grid != null ? this.position().subtract(grid.carrier().position()) : this.pendingOffset;
+
       if (gridId != null) {
          output.store(CELESTIUM$ATTACHED_GRID_KEY, UUIDUtil.CODEC, gridId);
-         if (offset != null) {
-            output.store(CELESTIUM$ATTACHED_GRID_OFFSET_KEY, Vec3.CODEC, offset);
-         }
+         if (offset != null) output.store(CELESTIUM$ATTACHED_GRID_OFFSET_KEY, Vec3.CODEC, offset);
       }
    }
 
-   @Inject(
-      method = {"load"},
-      at = {@At("TAIL")}
-   )
+   @Inject(method = "load", at = @At("TAIL"))
    private void loadAttachedGrid(ValueInput input, CallbackInfo ci) {
       input.read(CELESTIUM$ATTACHED_GRID_KEY, UUIDUtil.CODEC).ifPresent((gridId) -> {
          this.celestium$waitForGrid(gridId, GridRider.SERVER_RELOAD_TIMEOUT);
@@ -151,20 +150,22 @@ public abstract class EntityMixin implements GridRider {
       return state;
    }
 
-   @WrapMethod(method = "move")
-   private void moveWithAttachedGrid(MoverType moverType, Vec3 delta, Operation<Void> original) {
+   @WrapOperation(method = "move", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;maybeBackOffFromEdge(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/entity/MoverType;)Lnet/minecraft/world/phys/Vec3;"))
+   public Vec3 actuallyMoveWithAttachedGrid(Entity instance, Vec3 delta, MoverType moverType, Operation<Vec3> original) {
+      Vec3 res = instance instanceof Player player && player.isShiftKeyDown() ? delta : original.call(instance, delta, moverType);
+
       boolean previouslyIgnoring = this.ignoreGridCollision;
       this.ignoreGridCollision = moverType == MoverType.PLAYER;
 
       try {
          if (!this.ignoreGridCollision && this.attachedGrid != null && SubGridCollisions.movesWithGrid(this.asEntity())) {
-            delta = delta.add(this.attachedGrid.getLastMovement());
+            res = res.add(this.attachedGrid.getLastMovement());
          }
-
-         original.call(moverType, delta);
       } finally {
          this.ignoreGridCollision = previouslyIgnoring;
       }
+
+      return res;
    }
 
    @ModifyReturnValue(method = "collide(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;", at = @At("RETURN"))
