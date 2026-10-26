@@ -15,4 +15,5 @@ repositories {
 dependencies {
     fun plugin(id: String, version: String) = "$id:$id.gradle.plugin:$version"
     implementation("dev.kikugie:stonecutter:0.9.8")
+    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.0")
 }

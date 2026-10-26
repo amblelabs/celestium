@@ -44,6 +44,7 @@ val uniqueVersions = dists.values.flatten().distinct()
 
 stonecutter {
     centralScript = "build.gradle.kts"
+    kotlinController
 
     create(rootProject) {
         versions(*uniqueVersions.toTypedArray())

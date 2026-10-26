@@ -1,7 +1,7 @@
 plugins {
     `multiloader-common`
     id("dev.kikugie.loom-back-compat")
-    kotlin("jvm") version "2.4.0"
+    kotlin("jvm")
 //    id("com.google.devtools.ksp") version "2.3.12" // TODO(template): review
 //    id("dev.kikugie.fletching-table.fabric") version "0.1.0-alpha.14" // TODO(template): review
 }
@@ -43,6 +43,11 @@ val commonJava: Configuration by configurations.creating {
     isCanBeConsumed = true
 }
 
+val commonKotlin: Configuration by configurations.creating {
+    isCanBeConsumed = true
+    isCanBeResolved = false
+}
+
 val commonResources: Configuration by configurations.creating {
     isCanBeResolved = false
     isCanBeConsumed = true
@@ -51,6 +56,9 @@ val commonResources: Configuration by configurations.creating {
 artifacts {
     afterEvaluate {
         val mainSourceSet = sourceSets.main.get()
+        mainSourceSet.kotlin.sourceDirectories.files.forEach {
+            add(commonKotlin.name, it)
+        }
         mainSourceSet.java.sourceDirectories.files.forEach {
             add(commonJava.name, it)
         }
