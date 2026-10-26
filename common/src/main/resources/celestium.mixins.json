@@ -10,7 +10,8 @@
     "grid.PlayerListMixin",
     "grid.ServerGamePacketListenerImplMixin",
     "grid.ServerLevelEntityCallbacksMixin",
-    "grid.ServerLevelMixin"
+    "grid.ServerLevelMixin",
+    "space.TeleportUpMixin"
   ],
   "client": [
     "client.SpaceSkyRendererMixin",

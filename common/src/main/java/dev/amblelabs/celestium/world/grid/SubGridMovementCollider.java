@@ -65,7 +65,7 @@ public class SubGridMovementCollider {
         int bottom = origin.getY();
         int top = bottom + this.size.getY() - 1;
 
-        if (bottom >= level.getMinY() && top < level.getMaxY()) {
+        if (bottom >= level.getMinY()) { // readd maxY reactive to an interface like #hasTeleportToSpace or smt
             MutableBlockPos pos = new MutableBlockPos();
             LongIterator iterator = this.edgeBlocks.longIterator();
 
