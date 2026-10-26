@@ -38,6 +38,8 @@ public class TeleportUpMixin {
 
         if (entity.level() == overworldLevel && entity.getY() >= 700) {
             entity.teleportTo(spaceLevel, 0, 128, 0, Set.of(), 0, 0, false);
+        } else if(entity.level() == spaceLevel && entity.getY() <= 0) {
+            entity.teleportTo(overworldLevel, 0, 256, 0, Set.of(), 0, 0, false);
         }
     }
 }
