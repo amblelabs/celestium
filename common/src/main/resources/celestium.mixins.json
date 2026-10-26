@@ -15,6 +15,7 @@
     "space.TeleportUpMixin"
   ],
   "client": [
+    "client.CameraMixin",
     "client.SpaceSkyRendererMixin",
     "grid.client.ClientLevelEntityCallbacksMixin",
     "grid.client.ClientLevelMixin"

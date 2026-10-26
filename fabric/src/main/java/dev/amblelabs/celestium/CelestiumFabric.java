@@ -4,6 +4,8 @@ import dev.amblelabs.celestium.init.CelestiumEntityTypeIds;
 import dev.amblelabs.celestium.init.CelestiumEntityTypes;
 import dev.amblelabs.celestium.network.protocol.game.GridWaitPayload;
 import dev.amblelabs.celestium.network.protocol.game.SubGridPayload;
+import dev.amblelabs.celestium.space.AstralBodyRegistry;
+import dev.amblelabs.celestium.space.StarSystemRegistry;
 import dev.amblelabs.celestium.world.level.entitiy.PocketStarEntity;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -27,6 +29,9 @@ public class CelestiumFabric implements ModInitializer {
 
         PayloadTypeRegistry.clientboundPlay().register(SubGridPayload.TYPE, SubGridPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(GridWaitPayload.TYPE, GridWaitPayload.CODEC);
+
+        AstralBodyRegistry.initialize();
+        StarSystemRegistry.initialize();
     }
 
     private static <T extends Entity> EntityType<T> register(ResourceKey<EntityType<?>> key, EntityType<T> entity) {

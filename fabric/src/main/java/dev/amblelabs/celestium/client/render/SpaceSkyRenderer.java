@@ -2,13 +2,17 @@ package dev.amblelabs.celestium.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
 import dev.amblelabs.celestium.init.CelestiumDimensions;
+import dev.amblelabs.celestium.space.AstralBody;
+import dev.amblelabs.celestium.space.AstralBodyRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -32,6 +36,7 @@ public class SpaceSkyRenderer {
 
         if (level.dimension() == CelestiumDimensions.SPACE_KEY) {
             renderStars(poses, out, blocks * 3.2f, 1.0f, seconds);
+            renderStarSystemEntries(poses, out, seconds);
         }
     }
 
@@ -113,6 +118,60 @@ public class SpaceSkyRenderer {
                 point(buffer, pose, dir, right.mul(2.5f), up.mul(2.5f), ARGB.color(Math.round(70 * shown), star.color()));
             }
         });
+    }
+
+    private static void renderStarSystemEntries(PoseStack poses, SubmitNodeCollector out, float seconds) {
+        out.submitCustomGeometry(poses, CelestiumRenderTypes.SKY_GLOW,
+                (pose, buffer) -> renderSystem(buffer, pose, seconds, true));
+        out.submitCustomGeometry(poses, CelestiumRenderTypes.SKY_SOLID,
+                (pose, buffer) -> renderSystem(buffer, pose, seconds, false));
+    }
+
+    private static void renderSystem(VertexConsumer buffer, PoseStack.Pose pose, float seconds, boolean starPass) {
+        Vec3 cam = Minecraft.getInstance().gameRenderer.mainCamera().position();
+
+        PoseStack.Pose origin = pose.copy();
+        origin.translate((float) -cam.x, (float) -cam.y + 300, (float) -cam.z);
+
+        AstralBodyRegistry.ASTRAL_BODY_REGISTRY.stream()
+                .filter(body -> !body.isSatellite())
+                .forEach(body -> renderBody(buffer, origin, body, seconds, starPass));
+    }
+
+    private static void renderBody(VertexConsumer buffer, PoseStack.Pose parent, AstralBody body, float seconds, boolean starPass) {
+        PoseStack.Pose orbit = parent.copy();
+        orbit.rotate(Axis.YP, Mth.wrapDegrees(seconds * body.orbit().speed() * 2f));
+        orbit.translate(body.orbit().distanceFromCenter(), 0, 0);
+
+        for (AstralBody satellite : body.satellites()) {
+            renderBody(buffer, orbit, satellite, seconds, starPass);
+        }
+
+        if (body.isStar() != starPass) return;
+
+        PoseStack.Pose self = orbit.copy();
+        self.rotate(Axis.XP, body.axis());
+
+        point(buffer, self, body.sizeX(), body.sizeY(), body.sizeZ(), body.defaultColor());
+        if (starPass) {
+            point(buffer, self, body.sizeX() * 1.1f, body.sizeY() * 1.1f, body.sizeZ() * 1.1f, body.defaultColor());
+        }
+    }
+
+    private static final int[][] FACES = {
+            {4, 5, 7, 6}, {1, 0, 2, 3},
+            {0, 4, 6, 2}, {5, 1, 3, 7},
+            {2, 6, 7, 3}, {0, 1, 5, 4}
+    };
+
+    private static void point(VertexConsumer buffer, PoseStack.Pose pose,
+                              float sizeX, float sizeY, float sizeZ, int color) {
+        float hx = sizeX / 2f, hy = sizeY / 2f, hz = sizeZ / 2f;
+        for (int[] face : FACES) {
+            for (int i : face) {
+                buffer.addVertex(pose,((i & 1) != 0 ? hx : -hx),((i & 2) != 0 ? hy : -hy),((i & 4) != 0 ? hz : -hz)).setColor(color);
+            }
+        }
     }
 
     private static void point(VertexConsumer buffer, PoseStack.Pose pose, Vector3f center, Vector3f right, Vector3f up, int color) {
