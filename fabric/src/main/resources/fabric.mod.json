@@ -16,10 +16,16 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "dev.amblelabs.celestium.CelestiumFabric"
+      {
+        "adapter": "kotlin",
+        "value": "dev.amblelabs.celestium.CelestiumFabric"
+      }
     ],
     "client": [
-      "dev.amblelabs.celestium.client.CelestiumClientFabric"
+      {
+        "adapter": "kotlin",
+        "value": "dev.amblelabs.celestium.client.CelestiumClientFabric"
+      }
     ]
   },
   "mixins": [

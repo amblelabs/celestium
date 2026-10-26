@@ -4,9 +4,18 @@
   "package": "dev.amblelabs.celestium.mixins",
   "refmap": "${modId}.refmap.json",
   "compatibilityLevel": "JAVA_${javaVersion}",
-  "mixins": [],
+  "mixins": [
+    "grid.EntityMixin",
+    "grid.LevelMixin",
+    "grid.PlayerListMixin",
+    "grid.ServerGamePacketListenerImplMixin",
+    "grid.ServerLevelEntityCallbacksMixin",
+    "grid.ServerLevelMixin"
+  ],
   "client": [
-    "client.SpaceSkyRendererMixin"
+    "client.SpaceSkyRendererMixin",
+    "grid.client.ClientLevelEntityCallbacksMixin",
+    "grid.client.ClientLevelMixin"
   ],
   "server": [],
   "injectors": {

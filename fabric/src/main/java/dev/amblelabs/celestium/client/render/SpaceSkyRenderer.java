@@ -2,7 +2,7 @@ package dev.amblelabs.celestium.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import dev.amblelabs.celestium.core.CelestiumDimensions;
+import dev.amblelabs.celestium.init.CelestiumDimensions;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;

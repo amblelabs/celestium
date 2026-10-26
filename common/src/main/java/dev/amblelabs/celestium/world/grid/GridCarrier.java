@@ -1,40 +1,47 @@
 package dev.amblelabs.celestium.world.grid;
 
-import dev.amblelabs.celestium.network.protocol.game.ClientboundAddSubGridPacket;
+import dev.amblelabs.celestium.api.GridLevelExtKt;
+import dev.amblelabs.celestium.network.protocol.game.SubGridPayload;
+import dev.amblelabs.celestium.platform.Services;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.BlockPos.MutableBlockPos;
 import net.minecraft.core.Direction.AxisDirection;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.network.syncher.SynchedEntityData.Builder;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.InterpolationHandler;
+import net.minecraft.world.entity.LinearInterpolationHandler;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.material.PushReaction;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 
 public class GridCarrier extends Entity {
+
     public static final int LERP_STEPS = 2;
     private static final EntityDataAccessor<Direction> MOVEMENT_DIRECTION = SynchedEntityData.defineId(GridCarrier.class, EntityDataSerializers.DIRECTION);
     private static final EntityDataAccessor<Float> MOVEMENT_SPEED = SynchedEntityData.defineId(GridCarrier.class, EntityDataSerializers.FLOAT);
+
     private final SubGrid grid;
 
-    @Nullable
-    private SubGridMovementCollider movementCollider;
-    @Nullable
-    private GridCarrier.PosInterpolationTarget posInterpolationTarget;
+    private @Nullable SubGridMovementCollider movementCollider;
     private int placeInTicks;
 
-    public GridCarrier(EntityType<?> entityType, Level level) {
-        super(entityType, level);
-        this.grid = level.createSubGrid(this);
-        this.noCulling = true;
+    public GridCarrier(EntityType<?> type, Level level) {
+        super(type, level);
+        this.grid = GridLevelExtKt.createSubGrid(level, this);
     }
 
     public void setMovement(Direction direction, float f) {
@@ -63,30 +70,17 @@ public class GridCarrier extends Entity {
     @Override
     public void tick() {
         super.tick();
-        Direction direction = this.getMovementDirection();
-        this.grid.getBlocks().tick(this.level(), this.position(), direction);
-        if (this.level().isClientSide()) {
-            this.tickClient();
-        } else {
+        this.grid.getBlocks().tick(this.level(), this.position(), this.getMovementDirection());
+
+        if (!this.level().isClientSide()) {
             this.tickServer();
         }
     }
 
-    private void tickClient() {
-        if (this.posInterpolationTarget != null) {
-            this.posInterpolationTarget.applyLerpStep(this);
-            if (--this.posInterpolationTarget.steps == 0) {
-                this.posInterpolationTarget = null;
-            }
-        }
-    }
-
     private void tickServer() {
-        Direction direction = this.getMovementDirection();
-        float f = this.getMovementSpeed();
-        if (this.placeInTicks == 0 && f == 0.0F) {
+        float speed = this.getMovementSpeed();
+        if (this.placeInTicks == 0 && speed == 0)
             this.placeInTicks = 2;
-        }
 
         if (this.placeInTicks > 0) {
             this.placeInTicks--;
@@ -96,65 +90,60 @@ public class GridCarrier extends Entity {
                 this.discard();
             }
         } else if (this.movementCollider != null) {
-            this.tickMovement(this.movementCollider, direction, f);
+            this.tickMovement(this.movementCollider, this.getMovementDirection(), speed);
         }
     }
 
-    private void tickMovement(SubGridMovementCollider subGridMovementCollider, Direction direction, float f) {
-        Vec3 vec3 = this.position();
-        Vec3 vec32 = vec3.add(direction.getStepX() * f, direction.getStepY() * f, direction.getStepZ() * f);
-        BlockPos blockPos = this.getCollidingPos(vec3, direction);
-        BlockPos blockPos2 = this.getCollidingPos(vec32, direction);
-        MutableBlockPos mutableBlockPos = blockPos.mutable();
+    private void tickMovement(SubGridMovementCollider collider, Direction direction, float speed) {
+        Vec3 from = this.position();
+        Vec3 to = from.add(direction.getStepX() * speed, direction.getStepY() * speed, direction.getStepZ() * speed);
 
-        while (!mutableBlockPos.equals(blockPos2)) {
-            mutableBlockPos.move(direction);
-            if (subGridMovementCollider.checkCollision(this.level(), mutableBlockPos)) {
-                BlockPos blockPos3 = mutableBlockPos.relative(direction, -1);
-                this.setPos(Vec3.atLowerCornerOf(blockPos3));
+        BlockPos start = this.getCollidingPos(from, direction);
+        BlockPos end = this.getCollidingPos(to, direction);
+        MutableBlockPos pos = start.mutable();
+
+        while (!pos.equals(end)) {
+            pos.move(direction);
+            if (collider.checkCollision(this.level(), pos)) {
+                this.setPos(Vec3.atLowerCornerOf(pos.relative(direction, -1)));
                 this.clearMovement();
-                this.placeInTicks = 5;
+                this.placeInTicks = 5; // FIXME: magic
                 return;
             }
         }
 
-        this.setPos(vec32);
+        this.setPos(to);
     }
 
-    private BlockPos getCollidingPos(Vec3 vec3, Direction direction) {
-        BlockPos blockPos = BlockPos.containing(vec3);
-        return direction.getAxisDirection() == AxisDirection.POSITIVE ? blockPos.relative(direction) : blockPos;
+    private BlockPos getCollidingPos(Vec3 position, Direction direction) {
+        BlockPos pos = BlockPos.containing(position);
+        return direction.getAxisDirection() == AxisDirection.POSITIVE ? pos.relative(direction) : pos;
     }
 
     @Override
     protected void defineSynchedData(Builder builder) {
         builder.define(MOVEMENT_DIRECTION, Direction.NORTH);
-        builder.define(MOVEMENT_SPEED, 0.0F);
+        builder.define(MOVEMENT_SPEED, 0f);
     }
 
     @Override
-    protected void readAdditionalSaveData(CompoundTag compoundTag) {
-        this.grid.setBlocks(SubGridBlocks.decode(this.registryAccess().lookupOrThrow(Registries.BLOCK), compoundTag.getCompound("blocks")));
-        if (compoundTag.contains("biome", 8)) {
-            this.registryAccess().registryOrThrow(Registries.BIOME).getHolder(new ResourceLocation(compoundTag.getString("biome"))).ifPresent(this.grid::setBiome);
-        }
+    protected void readAdditionalSaveData(ValueInput input) {
+        input.read("blocks", SubGridBlocks.CODEC).ifPresent(this.grid::setBlocks);
 
-        if (compoundTag.contains("movement_direction", 8)) {
-            Direction direction = Direction.byName(compoundTag.getString("movement_direction"));
-            if (direction != null) {
-                this.setMovement(direction, compoundTag.getFloat("movement_speed"));
-            }
-        } else {
-            this.clearMovement();
-        }
+        input.read("biome", ResourceKey.codec(Registries.BIOME)).flatMap(key -> this.registryAccess()
+                .lookupOrThrow(Registries.BIOME).get(key)).ifPresent(this.grid::setBiome);
+
+        input.read("movement_direction", Direction.CODEC).ifPresentOrElse(dir -> {
+            this.setMovement(dir, input.getFloatOr("movement_speed", 0f));
+        }, this::clearMovement);
     }
 
     @Override
-    protected void addAdditionalSaveData(CompoundTag compoundTag) {
-        compoundTag.put("blocks", this.grid.getBlocks().encode());
-        this.grid.getBiome().unwrapKey().ifPresent(resourceKey -> compoundTag.putString("biome", resourceKey.location().toString()));
-        compoundTag.putString("movement_direction", this.getMovementDirection().getSerializedName());
-        compoundTag.putFloat("movement_speed", this.getMovementSpeed());
+    protected void addAdditionalSaveData(ValueOutput output) {
+        output.store("blocks", SubGridBlocks.CODEC, this.grid.getBlocks());
+        this.grid.getBiome().unwrapKey().ifPresent(key -> output.store("biome", ResourceKey.codec(Registries.BIOME), key));
+        output.store("movement_direction", Direction.CODEC, this.getMovementDirection());
+        output.putFloat("movement_speed", this.getMovementSpeed());
     }
 
     private float getMovementSpeed() {
@@ -166,45 +155,34 @@ public class GridCarrier extends Entity {
     }
 
     @Override
-    public Packet<ClientGamePacketListener> getAddEntityPacket() {
-        return new ClientboundAddSubGridPacket(this);
+    public void startSeenByPlayer(@NonNull ServerPlayer player) {
+        super.startSeenByPlayer(player);
+
+        Services.PLATFORM.sendToPlayer(player, new SubGridPayload(this.getId(), this.grid.getBlocks().copy(), this.grid.getBiome()));
     }
 
     @Override
-    public void lerpTo(double d, double e, double f, float g, float h, int i) {
-        this.posInterpolationTarget = new GridCarrier.PosInterpolationTarget(2, d, e, f);
+    protected @NonNull InterpolationHandler createInterpolationHandler() {
+        return LinearInterpolationHandler.create(this, LERP_STEPS);
     }
 
     @Override
-    public double lerpTargetX() {
-        return this.posInterpolationTarget != null ? this.posInterpolationTarget.targetX : this.getX();
+    public boolean shouldRenderAtSqrDistance(double distance) {
+        return true;
     }
 
     @Override
-    public double lerpTargetY() {
-        return this.posInterpolationTarget != null ? this.posInterpolationTarget.targetY : this.getY();
+    public boolean hurtServer(@NonNull ServerLevel level, @NonNull DamageSource source, float damage) {
+        return false;
     }
 
     @Override
-    public double lerpTargetZ() {
-        return this.posInterpolationTarget != null ? this.posInterpolationTarget.targetZ : this.getZ();
+    public @NonNull PushReaction getPistonPushReaction() {
+        return PushReaction.IGNORE_ENTITY;
     }
 
-    static class PosInterpolationTarget {
-        int steps;
-        final double targetX;
-        final double targetY;
-        final double targetZ;
-
-        PosInterpolationTarget(int i, double d, double e, double f) {
-            this.steps = i;
-            this.targetX = d;
-            this.targetY = e;
-            this.targetZ = f;
-        }
-
-        void applyLerpStep(Entity entity) {
-            entity.lerpPositionAndRotationStep(this.steps, this.targetX, this.targetY, this.targetZ, 0.0, 0.0);
-        }
+    @Override
+    public boolean isIgnoringBlockTriggers() {
+        return true;
     }
 }

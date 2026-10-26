@@ -1,10 +1,17 @@
 package dev.amblelabs.celestium.world.grid;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import io.netty.buffer.ByteBuf;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderGetter;
@@ -15,8 +22,8 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.util.BitStorage;
 import net.minecraft.util.Mth;
 import net.minecraft.util.SimpleBitStorage;
 import net.minecraft.world.level.Level;
@@ -27,57 +34,64 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.Vec3;
+import org.jspecify.annotations.NonNull;
 
 public class SubGridBlocks {
-    public static final StreamCodec<RegistryFriendlyByteBuf, SubGridBlocks> STREAM_CODEC = new StreamCodec<RegistryFriendlyByteBuf, SubGridBlocks>() {
-        public SubGridBlocks decode(RegistryFriendlyByteBuf registryFriendlyByteBuf) {
-            int i = registryFriendlyByteBuf.readVarInt();
-            int j = registryFriendlyByteBuf.readVarInt();
-            int k = registryFriendlyByteBuf.readVarInt();
-            List<BlockState> list = registryFriendlyByteBuf.readList(friendlyByteBuf -> Block.stateById(friendlyByteBuf.readVarInt()));
-            int l = Mth.ceillog2(list.size());
-            BlockState[] blockStates = new BlockState[i * j * k];
-            SimpleBitStorage simpleBitStorage = new SimpleBitStorage(l, blockStates.length, registryFriendlyByteBuf.readLongArray());
+    private static final BlockState EMPTY_BLOCK_STATE = Blocks.AIR.defaultBlockState();
+    private static final int NO_INDEX = -1;
 
-            for (int m = 0; m < blockStates.length; m++) {
-                blockStates[m] = (BlockState)list.get(simpleBitStorage.get(m));
+    private static final StreamCodec<ByteBuf, List<BlockState>> PALETTE_STREAM_CODEC = ByteBufCodecs.idMapper(Block.BLOCK_STATE_REGISTRY).apply(ByteBufCodecs.list());
+    private static final StreamCodec<ByteBuf, List<BlockPos>> TICKABLES_STREAM_CODEC = BlockPos.STREAM_CODEC.apply(ByteBufCodecs.list());
+
+    public static final StreamCodec<RegistryFriendlyByteBuf, SubGridBlocks> STREAM_CODEC = new StreamCodec<>() {
+        public @NonNull SubGridBlocks decode(RegistryFriendlyByteBuf buffer) {
+            int sizeX = buffer.readVarInt();
+            int sizeY = buffer.readVarInt();
+            int sizeZ = buffer.readVarInt();
+            List<BlockState> palette = SubGridBlocks.PALETTE_STREAM_CODEC.decode(buffer);
+            BlockState[] blockStates = new BlockState[sizeX * sizeY * sizeZ];
+            SimpleBitStorage storage = new SimpleBitStorage(SubGridBlocks.bitsFor(palette.size()), blockStates.length, buffer.readLongArray());
+
+            for (int i = 0; i < blockStates.length; ++i) {
+                blockStates[i] = palette.get(storage.get(i));
             }
 
-            ArrayList<BlockPos> arrayList = registryFriendlyByteBuf.readCollection(ArrayList::new, BlockPos.STREAM_CODEC);
-            return new SubGridBlocks(blockStates, arrayList, i, j, k);
+            List<BlockPos> tickables = new ArrayList<>(SubGridBlocks.TICKABLES_STREAM_CODEC.decode(buffer));
+            return new SubGridBlocks(blockStates, tickables, sizeX, sizeY, sizeZ);
         }
 
-        public void encode(RegistryFriendlyByteBuf registryFriendlyByteBuf, SubGridBlocks subGridBlocks) {
-            registryFriendlyByteBuf.writeVarInt(subGridBlocks.sizeX);
-            registryFriendlyByteBuf.writeVarInt(subGridBlocks.sizeY);
-            registryFriendlyByteBuf.writeVarInt(subGridBlocks.sizeZ);
-            Reference2IntMap<BlockState> reference2IntMap = new Reference2IntOpenHashMap();
-            List<BlockState> list = new ArrayList();
-            reference2IntMap.defaultReturnValue(-1);
+        public void encode(RegistryFriendlyByteBuf buffer, SubGridBlocks blocks) {
+            buffer.writeVarInt(blocks.sizeX);
+            buffer.writeVarInt(blocks.sizeY);
+            buffer.writeVarInt(blocks.sizeZ);
+            Reference2IntMap<BlockState> indices = new Reference2IntOpenHashMap<>();
+            indices.defaultReturnValue(NO_INDEX);
+            List<BlockState> palette = new ArrayList<>();
 
-            for (BlockState blockState : subGridBlocks.blockStates) {
-                int i = list.size();
-                int j = reference2IntMap.putIfAbsent(blockState, i);
-                if (j == -1) {
-                    list.add(blockState);
+            for (BlockState state : blocks.blockStates) {
+                if (indices.putIfAbsent(state, palette.size()) == NO_INDEX) {
+                    palette.add(state);
                 }
             }
 
-            registryFriendlyByteBuf.writeCollection(list, (friendlyByteBuf, blockStatex) -> friendlyByteBuf.writeVarInt(Block.getId(blockStatex)));
-            int k = Mth.ceillog2(list.size());
-            BitStorage bitStorage = new SimpleBitStorage(k, subGridBlocks.sizeX * subGridBlocks.sizeY * subGridBlocks.sizeZ);
-            int l = 0;
+            SubGridBlocks.PALETTE_STREAM_CODEC.encode(buffer, palette);
+            SimpleBitStorage storage = new SimpleBitStorage(SubGridBlocks.bitsFor(palette.size()), blocks.blockStates.length);
 
-            for (BlockState blockState2 : subGridBlocks.blockStates) {
-                bitStorage.set(l++, reference2IntMap.getInt(blockState2));
+            for (int i = 0; i < blocks.blockStates.length; ++i) {
+                storage.set(i, indices.getInt(blocks.blockStates[i]));
             }
 
-            registryFriendlyByteBuf.writeLongArray(bitStorage.getRaw());
-            registryFriendlyByteBuf.writeCollection(subGridBlocks.tickables, BlockPos.STREAM_CODEC);
+            buffer.writeLongArray(storage.getRaw());
+            SubGridBlocks.TICKABLES_STREAM_CODEC.encode(buffer, blocks.tickables);
         }
     };
-    private static final int NO_INDEX = -1;
-    private static final BlockState EMPTY_BLOCK_STATE = Blocks.AIR.defaultBlockState();
+
+    public static final Codec<SubGridBlocks> CODEC = SubGridBlocks.Stored.CODEC.xmap(SubGridBlocks::fromStored, SubGridBlocks::toStored);
+
+    private static int bitsFor(int paletteSize) {
+        return Math.max(1, Mth.ceillog2(paletteSize));
+    }
+
     final BlockState[] blockStates;
     final List<BlockPos> tickables;
     final int sizeX;
@@ -95,7 +109,7 @@ public class SubGridBlocks {
     public SubGridBlocks(int i, int j, int k) {
         this.blockStates = new BlockState[i * j * k];
         Arrays.fill(this.blockStates, EMPTY_BLOCK_STATE);
-        this.tickables = new ArrayList();
+        this.tickables = new ArrayList<>();
         this.sizeX = i;
         this.sizeY = j;
         this.sizeZ = k;
@@ -125,7 +139,7 @@ public class SubGridBlocks {
 
     public BlockState getBlockState(int i, int j, int k) {
         int l = this.index(i, j, k);
-        return l == -1 ? EMPTY_BLOCK_STATE : this.blockStates[l];
+        return l == NO_INDEX ? EMPTY_BLOCK_STATE : this.blockStates[l];
     }
 
     public BlockState getBlockState(BlockPos blockPos) {
@@ -150,96 +164,86 @@ public class SubGridBlocks {
 
     public SubGridBlocks copy() {
         return new SubGridBlocks(
-                (BlockState[])Arrays.copyOf(this.blockStates, this.blockStates.length), new ArrayList(this.tickables), this.sizeX, this.sizeY, this.sizeZ
+                Arrays.copyOf(this.blockStates, this.blockStates.length), new ArrayList<>(this.tickables), this.sizeX, this.sizeY, this.sizeZ
         );
     }
 
     public void place(BlockPos blockPos, Level level) {
-        MutableBlockPos mutableBlockPos = new MutableBlockPos();
+        MutableBlockPos pos = new MutableBlockPos();
 
-        for (int i = 0; i < this.sizeZ; i++) {
-            for (int j = 0; j < this.sizeX; j++) {
-                for (int k = 0; k < this.sizeY; k++) {
-                    mutableBlockPos.setWithOffset(blockPos, j, k, i);
-                    BlockState blockState = this.getBlockState(j, k, i);
-                    if (!blockState.isAir()) {
-                        FluidState fluidState = level.getFluidState(mutableBlockPos);
-                        if (fluidState.is(Fluids.WATER)) {
-                            blockState = (BlockState)blockState.trySetValue(BlockStateProperties.WATERLOGGED, true);
-                        }
+        for (int z = 0; z < this.sizeZ; z++) {
+            for (int x = 0; x < this.sizeX; x++) {
+                for (int y = 0; y < this.sizeY; y++) {
+                    pos.setWithOffset(blockPos, x, y, z);
+                    BlockState state = this.getBlockState(x, y, z);
 
-                        level.setBlock(mutableBlockPos, blockState, 18);
+                    if (!state.isAir()) {
+                        FluidState fluidState = level.getFluidState(pos);
+
+                        if (fluidState.is(Fluids.WATER))
+                            state = state.trySetValue(BlockStateProperties.WATERLOGGED, true);
+
+                        level.setBlock(pos, state, Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_CLIENTS);
                     }
                 }
             }
         }
 
-        for (int i = 0; i < this.sizeZ; i++) {
-            for (int j = 0; j < this.sizeX; j++) {
-                for (int k = 0; k < this.sizeY; k++) {
-                    mutableBlockPos.setWithOffset(blockPos, j, k, i);
-                    level.blockUpdated(mutableBlockPos, this.getBlockState(j, k, i).getBlock());
+        for (int z = 0; z < this.sizeZ; z++) {
+            for (int x = 0; x < this.sizeX; x++) {
+                for (int y = 0; y < this.sizeY; y++) {
+                    pos.setWithOffset(blockPos, x, y, z);
+                    level.updateNeighborsAt(pos, this.getBlockState(x, y, z).getBlock());
                 }
             }
         }
     }
 
-    public static SubGridBlocks decode(HolderGetter<Block> holderGetter, CompoundTag compoundTag) {
-        int i = compoundTag.getInt("size_x");
-        int j = compoundTag.getInt("size_y");
-        int k = compoundTag.getInt("size_z");
-        BlockState[] blockStates = new BlockState[i * j * k];
-        ListTag listTag = compoundTag.getList("palette", 10);
-        List<BlockState> list = new ArrayList();
+    private static SubGridBlocks fromStored(Stored stored) {
+        BlockState[] blockStates = new BlockState[stored.sizeX() * stored.sizeY() * stored.sizeZ()];
+        int[] indices = stored.blocks().toArray();
+        if (indices.length != blockStates.length) {
+            return new SubGridBlocks(stored.sizeX(), stored.sizeY(), stored.sizeZ());
+        } else {
+            for (int i = 0; i < indices.length; ++i) {
+                int index = indices[i];
+                blockStates[i] = index >= 0 && index < stored.palette().size() ? stored.palette().get(index) : EMPTY_BLOCK_STATE;
+            }
 
-        for (int l = 0; l < listTag.size(); l++) {
-            list.add(NbtUtils.readBlockState(holderGetter, listTag.getCompound(l)));
+            return new SubGridBlocks(blockStates,
+                    stored.tickables().mapToObj(BlockPos::of).collect(Collectors.toList()), // TODO: does this need to be an array list?
+                    stored.sizeX(), stored.sizeY(), stored.sizeZ());
         }
-
-        int[] is = compoundTag.getIntArray("blocks");
-        if (is.length != blockStates.length) {
-            return new SubGridBlocks(i, j, k);
-        }
-
-        for (int m = 0; m < is.length; m++) {
-            int n = is[m];
-            blockStates[m] = n < list.size() ? (BlockState)list.get(n) : Blocks.AIR.defaultBlockState();
-        }
-
-        List<BlockPos> list2 = new ArrayList();
-        if (compoundTag.contains("tickables", 12)) {
-            Arrays.stream(compoundTag.getLongArray("tickables")).mapToObj(BlockPos::of).forEach(list2::add);
-        }
-
-        return new SubGridBlocks(blockStates, list2, i, j, k);
     }
 
-    public Tag encode() {
-        CompoundTag compoundTag = new CompoundTag();
-        compoundTag.putInt("size_x", this.sizeX);
-        compoundTag.putInt("size_y", this.sizeY);
-        compoundTag.putInt("size_z", this.sizeZ);
-        Reference2IntMap<BlockState> reference2IntMap = new Reference2IntOpenHashMap();
-        reference2IntMap.defaultReturnValue(-1);
-        ListTag listTag = new ListTag();
-        int[] is = new int[this.blockStates.length];
+    private Stored toStored() {
+        Reference2IntMap<BlockState> indices = new Reference2IntOpenHashMap<>();
+        indices.defaultReturnValue(NO_INDEX);
+        List<BlockState> palette = new ArrayList<>();
+        int[] blocks = new int[this.blockStates.length];
 
-        for (int i = 0; i < this.blockStates.length; i++) {
-            BlockState blockState = this.blockStates[i];
-            int j = listTag.size();
-            int k = reference2IntMap.putIfAbsent(blockState, j);
-            if (k == -1) {
-                listTag.add(NbtUtils.writeBlockState(blockState));
-                is[i] = j;
+        for (int i = 0; i < this.blockStates.length; ++i) {
+            int index = indices.putIfAbsent(this.blockStates[i], palette.size());
+            if (index == NO_INDEX) {
+                blocks[i] = palette.size();
+                palette.add(this.blockStates[i]);
             } else {
-                is[i] = k;
+                blocks[i] = index;
             }
         }
 
-        compoundTag.put("palette", listTag);
-        compoundTag.put("blocks", new IntArrayTag(is));
-        compoundTag.putLongArray("tickables", this.tickables.stream().mapToLong(BlockPos::asLong).toArray());
-        return compoundTag;
+        return new Stored(this.sizeX, this.sizeY, this.sizeZ, palette, IntStream.of(blocks), this.tickables.stream().mapToLong(BlockPos::asLong));
+    }
+
+    private record Stored(int sizeX, int sizeY, int sizeZ, List<BlockState> palette, IntStream blocks, LongStream tickables) {
+        static final Codec<Stored> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                Codec.INT.fieldOf("size_x").forGetter(Stored::sizeX),
+                Codec.INT.fieldOf("size_y").forGetter(Stored::sizeY),
+                Codec.INT.fieldOf("size_z").forGetter(Stored::sizeZ),
+                BlockState.CODEC.listOf().fieldOf("palette").forGetter(Stored::palette),
+                Codec.INT_STREAM.fieldOf("blocks").forGetter(Stored::blocks),
+                Codec.LONG_STREAM.optionalFieldOf("tickables", LongStream.empty()).forGetter(Stored::tickables)
+        ).apply(instance, Stored::new));
     }
 }
 

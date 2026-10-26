@@ -1,12 +1,11 @@
 package dev.amblelabs.celestium;
 
-import dev.amblelabs.celestium.core.CelestiumBlocks;
-import dev.amblelabs.celestium.core.CelestiumEntityTypes;
-import dev.amblelabs.celestium.core.CelestiumItems;
-import dev.amblelabs.celestium.core.CelestiumSounds;
+import dev.amblelabs.celestium.init.CelestiumBlocks;
+import dev.amblelabs.celestium.init.CelestiumEntityTypes;
+import dev.amblelabs.celestium.init.CelestiumItems;
+import dev.amblelabs.celestium.init.CelestiumSounds;
 import net.minecraft.resources.Identifier;
 
-import net.minecraft.sounds.SoundEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,12 +23,10 @@ public class Celestium {
     }
 
     public static void init() {
-
         CelestiumSounds.register();
         CelestiumBlocks.register();
         CelestiumItems.register();
 
         CelestiumEntityTypes.initialize();
-
     }
 }

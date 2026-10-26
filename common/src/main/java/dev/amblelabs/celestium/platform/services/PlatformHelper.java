@@ -2,12 +2,20 @@ package dev.amblelabs.celestium.platform.services;
 
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 
+import java.util.Collection;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
+// TODO: javadocs
 public interface PlatformHelper {
 
     /**
@@ -31,6 +39,16 @@ public interface PlatformHelper {
      * @return {@code true} if in a development environment, {@code false} otherwise.
      */
     boolean isDevelopmentEnvironment();
+
+    void sendToPlayer(ServerPlayer target, CustomPacketPayload packet);
+
+    void sendToAll(Stream<ServerPlayer> targets, CustomPacketPayload packet);
+
+    void sendToAll(Collection<ServerPlayer> targets, CustomPacketPayload packet);
+
+    void sendToNearby(Vec3 pos, double radius, ServerLevel level, CustomPacketPayload packet);
+
+    void sendToTracking(Entity entity, CustomPacketPayload packet);
 
     <T> Registrar<T> createRegistrar(Registry<T> registry);
     <T> Registrar<T> createRegistrar(ResourceKey<? extends Registry<T>> registry);

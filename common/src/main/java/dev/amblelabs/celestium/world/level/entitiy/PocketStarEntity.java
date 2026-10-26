@@ -1,6 +1,6 @@
-package dev.amblelabs.celestium.core.entities;
+package dev.amblelabs.celestium.world.level.entitiy;
 
-import dev.amblelabs.celestium.core.CelestiumEntityTypes;
+import dev.amblelabs.celestium.init.CelestiumEntityTypes;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;

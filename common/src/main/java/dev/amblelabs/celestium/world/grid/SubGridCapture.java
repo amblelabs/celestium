@@ -1,5 +1,7 @@
 package dev.amblelabs.celestium.world.grid;
 
+import dev.amblelabs.celestium.init.CelestiumBlocks;
+import dev.amblelabs.celestium.world.level.block.FloataterBlock;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -8,17 +10,16 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
+
 import java.util.function.Consumer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.BlockPos.MutableBlockPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.piston.PistonBaseBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.shapes.BooleanOp;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -28,136 +29,132 @@ public record SubGridCapture(SubGridBlocks blocks, LongSet mask, BlockPos minPos
     private static final Direction[] DIRECTIONS = Direction.values();
 
     @Nullable
-    public static SubGridCapture scan(Level level, BlockPos blockPos, Direction direction) {
-        Long2ObjectMap<BlockState> long2ObjectMap = new Long2ObjectOpenHashMap();
-        LongArrayFIFOQueue longArrayFIFOQueue = new LongArrayFIFOQueue();
-        long2ObjectMap.put(blockPos.asLong(), level.getBlockState(blockPos));
-        longArrayFIFOQueue.enqueue(blockPos.asLong());
-        int i = blockPos.getX();
-        int j = blockPos.getY();
-        int k = blockPos.getZ();
-        int l = blockPos.getX();
-        int m = blockPos.getY();
-        int n = blockPos.getZ();
-        MutableBlockPos mutableBlockPos = new MutableBlockPos();
-        MutableBlockPos mutableBlockPos2 = new MutableBlockPos();
-       // int o = level.getGameRules().getInt(GameRules.RULE_FLOATATER_SIZE_LIMIT);
+    public static SubGridCapture scan(Level level, BlockPos blockPos, Direction movement) {
+        Long2ObjectMap<BlockState> captured = new Long2ObjectOpenHashMap<>();
+        LongArrayFIFOQueue queue = new LongArrayFIFOQueue();
 
-        while (!longArrayFIFOQueue.isEmpty()) {
-            long p = longArrayFIFOQueue.dequeueLastLong();
-            mutableBlockPos.set(p);
-            BlockState blockState = (BlockState)long2ObjectMap.get(p);
-            i = Math.min(i, mutableBlockPos.getX());
-            j = Math.min(j, mutableBlockPos.getY());
-            k = Math.min(k, mutableBlockPos.getZ());
-            l = Math.max(l, mutableBlockPos.getX());
-            m = Math.max(m, mutableBlockPos.getY());
-            n = Math.max(n, mutableBlockPos.getZ());
-            if (l - i + 1 > o || m - j + 1 > o || n - k + 1 > o) {
+        captured.put(blockPos.asLong(), level.getBlockState(blockPos));
+        queue.enqueue(blockPos.asLong());
+
+        int minX = blockPos.getX();
+        int minY = blockPos.getY();
+        int minZ = blockPos.getZ();
+        int maxX = blockPos.getX();
+        int maxY = blockPos.getY();
+        int maxZ = blockPos.getZ();
+
+        MutableBlockPos pos = new MutableBlockPos();
+        MutableBlockPos neighbor = new MutableBlockPos();
+        int sizeLimit = 64; // TODO: level.getGameRules().getInt(GameRules.RULE_FLOATATER_SIZE_LIMIT);
+
+        while (!queue.isEmpty()) {
+            long p = queue.dequeueLastLong();
+            pos.set(p);
+
+            BlockState state = captured.get(p);
+            minX = Math.min(minX, pos.getX());
+            minY = Math.min(minY, pos.getY());
+            minZ = Math.min(minZ, pos.getZ());
+            maxX = Math.max(maxX, pos.getX());
+            maxY = Math.max(maxY, pos.getY());
+            maxZ = Math.max(maxZ, pos.getZ());
+
+            if (maxX - minX + 1 > sizeLimit || maxY - minY + 1 > sizeLimit || maxZ - minZ + 1 > sizeLimit)
                 return null;
-            }
 
-            VoxelShape voxelShape = blockState.getShape(level, mutableBlockPos);
+            VoxelShape shape = state.getShape(level, pos);
 
-            for (Direction direction2 : DIRECTIONS) {
-                mutableBlockPos2.setWithOffset(mutableBlockPos, direction2);
-                long q = mutableBlockPos2.asLong();
-                if (!long2ObjectMap.containsKey(q)) {
-                    BlockState blockState2 = level.getBlockState(mutableBlockPos2);
-                    VoxelShape voxelShape2 = blockState2.getShape(level, mutableBlockPos2);
-                    boolean bl = direction2 == direction && !blockState2.canBeReplaced();
-                    if (bl || isConnected(direction2, voxelShape, voxelShape2, blockState, blockState2)) {
-                        longArrayFIFOQueue.enqueue(q);
-                        long2ObjectMap.put(q, blockState2);
+            for (Direction direction : DIRECTIONS) {
+                neighbor.setWithOffset(pos, direction);
+                long neighborPacked = neighbor.asLong();
+
+                if (!captured.containsKey(neighborPacked)) {
+                    BlockState neighborState = level.getBlockState(neighbor);
+                    VoxelShape neighborShape = neighborState.getShape(level, neighbor);
+
+                    boolean pushedInFront = direction == movement && !neighborState.canBeReplaced();
+                    if (pushedInFront || isConnected(direction, shape, neighborShape, state, neighborState)) {
+                        queue.enqueue(neighborPacked);
+                        captured.put(neighborPacked, neighborState);
                     }
                 }
             }
         }
 
-        int r = l - i + 1;
-        int s = m - j + 1;
-        int t = n - k + 1;
-        SubGridBlocks subGridBlocks = new SubGridBlocks(r, s, t);
-        int u = 0;
-        ObjectIterator var31 = Long2ObjectMaps.fastIterable(long2ObjectMap).iterator();
+        SubGridBlocks blocks = new SubGridBlocks(maxX - minX + 1, maxY - minY + 1, maxZ - minZ + 1);
+        int engines = 0;
 
-        while (var31.hasNext()) {
-            Entry<BlockState> entry = (Entry<BlockState>)var31.next();
-            mutableBlockPos.set(entry.getLongKey());
-            BlockState blockState3 = (BlockState)((BlockState)entry.getValue()).trySetValue(BlockStateProperties.WATERLOGGED, false);
-            if (blockState3.is(Blocks.FLOATATER)
-                    && blockState3.getValue(FloataterBlock.FACING) == direction
-                    && (Boolean)blockState3.getValue(FloataterBlock.TRIGGERED)) {
-                u++;
+        for (Entry<BlockState> entry : Long2ObjectMaps.fastIterable(captured)) {
+            pos.set(entry.getLongKey());
+            BlockState state = entry.getValue().trySetValue(BlockStateProperties.WATERLOGGED, false);
+
+            if (state.is(CelestiumBlocks.FLOATATER)
+                    && state.getValue(FloataterBlock.FACING) == movement
+                    && state.getValue(FloataterBlock.TRIGGERED)) {
+                engines++;
             }
 
-            if (blockState3.getBlock() instanceof FlyingTickable) {
-                subGridBlocks.markTickable(new BlockPos(mutableBlockPos.getX() - i, mutableBlockPos.getY() - j, mutableBlockPos.getZ() - k));
-            }
+            if (state.getBlock() instanceof FlyingTickable)
+                blocks.markTickable(new BlockPos(pos.getX() - minX, pos.getY() - minY, pos.getZ() - minZ));
 
-            if (!blockState3.hasBlockEntity()) {
-                subGridBlocks.setBlockState(mutableBlockPos.getX() - i, mutableBlockPos.getY() - j, mutableBlockPos.getZ() - k, blockState3);
-            }
+            if (!state.hasBlockEntity())
+                blocks.setBlockState(pos.getX() - minX, pos.getY() - minY, pos.getZ() - minZ, state);
         }
 
-        return new SubGridCapture(subGridBlocks, new LongOpenHashSet(long2ObjectMap.keySet()), new BlockPos(i, j, k), u);
+        return new SubGridCapture(blocks, new LongOpenHashSet(captured.keySet()), new BlockPos(minX, minY, minZ), engines);
     }
 
-    private static boolean isConnected(Direction direction, VoxelShape voxelShape, VoxelShape voxelShape2, BlockState blockState, BlockState blockState2) {
-        if (isStickyInDirection(blockState, direction) || isStickyInDirection(blockState2, direction.getOpposite())) {
-            return true;
+    private static boolean isConnected(Direction direction, VoxelShape shape, VoxelShape neighborShape, BlockState state, BlockState neighborState) {
+        if (!isStickyInDirection(state, direction) && !isStickyInDirection(neighborState, direction.getOpposite())) {
+            return areShapesConnected(direction, shape, neighborShape) && !isNonStickyInDirection(state, direction) && !isNonStickyInDirection(neighborState, direction.getOpposite());
         } else {
-            return !areShapesConnected(direction, voxelShape, voxelShape2)
-                    ? false
-                    : !isNonStickyInDirection(blockState, direction) && !isNonStickyInDirection(blockState2, direction.getOpposite());
+            return true;
         }
     }
 
-    private static boolean areShapesConnected(Direction direction, VoxelShape voxelShape, VoxelShape voxelShape2) {
-        if (voxelShape != Shapes.empty() && voxelShape2 != Shapes.empty()) {
-            VoxelShape voxelShape3 = Shapes.getFaceShape(voxelShape, direction);
-            VoxelShape voxelShape4 = Shapes.getFaceShape(voxelShape2, direction.getOpposite());
-            return voxelShape3 == Shapes.block() && voxelShape4 == Shapes.block() ? true : Shapes.joinIsNotEmpty(voxelShape3, voxelShape4, BooleanOp.AND);
+    private static boolean areShapesConnected(Direction direction, VoxelShape shape, VoxelShape neighborShape) {
+        if (shape != Shapes.empty() && neighborShape != Shapes.empty()) {
+            VoxelShape face = shape.getFaceShape(direction);
+            VoxelShape neighborFace = neighborShape.getFaceShape(direction.getOpposite());
+            return face == Shapes.block() && neighborFace == Shapes.block() || Shapes.joinIsNotEmpty(face, neighborFace, BooleanOp.AND);
         } else {
             return false;
         }
     }
 
-    private static boolean isNonStickyInDirection(BlockState blockState, Direction direction) {
-        return blockState.is(Blocks.FLOATATER) && blockState.getValue(FloataterBlock.FACING) != direction;
+    private static boolean isNonStickyInDirection(BlockState state, Direction direction) {
+        return state.is(CelestiumBlocks.FLOATATER) && state.getValue(FloataterBlock.FACING) != direction;
     }
 
-    private static boolean isStickyInDirection(BlockState blockState, Direction direction) {
-        if (!blockState.is(Blocks.SLIME_BLOCK) && !blockState.is(Blocks.HONEY_BLOCK)) {
-            return blockState.is(Blocks.STICKY_PISTON) && blockState.getValue(PistonBaseBlock.FACING) == direction
-                    ? true
-                    : blockState.is(Blocks.FLOATATER) && blockState.getValue(FloataterBlock.FACING) == direction;
+    private static boolean isStickyInDirection(BlockState state, Direction direction) {
+        if (!state.is(Blocks.SLIME_BLOCK) && !state.is(Blocks.HONEY_BLOCK)) {
+            return state.is(Blocks.STICKY_PISTON) && state.getValue(BlockStateProperties.FACING) == direction
+                    || state.is(CelestiumBlocks.FLOATATER) && state.getValue(FloataterBlock.FACING) == direction;
         } else {
             return true;
         }
     }
 
     public void remove(Level level) {
-        this.forEachPos(blockPos -> {
-            BlockState blockState = level.getBlockState(blockPos);
-            if (blockState.hasBlockEntity()) {
-                level.destroyBlock(blockPos, true);
+        this.forEachPos(pos -> {
+            BlockState state = level.getBlockState(pos);
+            if (state.hasBlockEntity()) {
+                level.destroyBlock(pos, true);
             } else {
-                FluidState fluidState = blockState.getFluidState();
-                BlockState blockState2 = fluidState.createLegacyBlock();
-                level.setBlock(blockPos, blockState2, 18);
+                level.setBlock(pos, state.getFluidState().createLegacyBlock(), Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_CLIENTS);
             }
         });
-        this.forEachPos(blockPos -> level.blockUpdated(blockPos, level.getBlockState(blockPos).getBlock()));
+
+        this.forEachPos(pos -> level.updateNeighborsAt(pos, level.getBlockState(pos).getBlock()));
     }
 
     private void forEachPos(Consumer<BlockPos> consumer) {
-        MutableBlockPos mutableBlockPos = new MutableBlockPos();
-        LongIterator longIterator = this.mask.longIterator();
+        MutableBlockPos pos = new MutableBlockPos();
+        LongIterator iterator = this.mask.longIterator();
 
-        while (longIterator.hasNext()) {
-            mutableBlockPos.set(longIterator.nextLong());
-            consumer.accept(mutableBlockPos);
+        while (iterator.hasNext()) {
+            pos.set(iterator.nextLong());
+            consumer.accept(pos);
         }
     }
 }

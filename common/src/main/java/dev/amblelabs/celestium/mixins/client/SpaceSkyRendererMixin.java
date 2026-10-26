@@ -2,8 +2,9 @@ package dev.amblelabs.celestium.mixins.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.renderpearl.api.commands.RenderPass;
-import dev.amblelabs.celestium.core.CelestiumDimensions;
+import dev.amblelabs.celestium.init.CelestiumDimensions;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.SkyRenderer;
 import net.minecraft.world.level.MoonPhase;
 import org.spongepowered.asm.mixin.Mixin;
@@ -27,9 +28,7 @@ public class SpaceSkyRendererMixin {
 
     @Unique
     private static boolean celestium$inSpace() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null) return false;
-        return mc.level.dimension() == CelestiumDimensions.SPACE_KEY;
+        ClientLevel level = Minecraft.getInstance().level;
+        return level != null && level.dimension() == CelestiumDimensions.SPACE_KEY;
     }
-
 }

@@ -1,21 +1,21 @@
 plugins {
     `multiloader-common`
     id("dev.kikugie.loom-back-compat")
-    kotlin("jvm") version "2.2.0"
-    id("com.google.devtools.ksp") version "2.2.0-2.0.2" // TODO(template): review
-    id("dev.kikugie.fletching-table.fabric") version "0.1.0-alpha.14" // TODO(template): review
+    kotlin("jvm") version "2.4.0"
+//    id("com.google.devtools.ksp") version "2.3.12" // TODO(template): review
+//    id("dev.kikugie.fletching-table.fabric") version "0.1.0-alpha.14" // TODO(template): review
 }
 
 stonecutter {
 
 }
 
-fletchingTable {
-    // TODO(template): review
-    j52j.register("main") {
-        extension("json", "**/*.json5")
-    }
-}
+//fletchingTable {
+//     TODO(template): review
+//    j52j.register("main") {
+//        extension("json", "**/*.json5")
+//    }
+//}
 
 loom {
     mixin {

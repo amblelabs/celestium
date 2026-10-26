@@ -1,4 +1,4 @@
-package dev.amblelabs.celestium.core;
+package dev.amblelabs.celestium.init;
 
 import dev.amblelabs.celestium.Celestium;
 import net.minecraft.core.registries.Registries;

@@ -1,8 +1,7 @@
-package dev.amblelabs.celestium.core.items;
+package dev.amblelabs.celestium.world.item;
 
 
-import dev.amblelabs.celestium.core.CelestiumEntityTypes;
-import dev.amblelabs.celestium.core.entities.PocketStarEntity;
+import dev.amblelabs.celestium.world.level.entitiy.PocketStarEntity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.InteractionHand;

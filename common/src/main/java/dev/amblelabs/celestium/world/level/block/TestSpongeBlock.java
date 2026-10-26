@@ -1,4 +1,4 @@
-package dev.amblelabs.celestium.core.blocks;
+package dev.amblelabs.celestium.world.level.block;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;

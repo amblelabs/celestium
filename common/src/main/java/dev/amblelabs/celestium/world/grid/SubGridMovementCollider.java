@@ -14,67 +14,67 @@ public class SubGridMovementCollider {
     private final LongList edgeBlocks;
     private final BlockPos size;
 
-    private SubGridMovementCollider(LongList longList, BlockPos blockPos) {
-        this.edgeBlocks = longList;
-        this.size = blockPos;
+    private SubGridMovementCollider(LongList edgeBlocks, BlockPos size) {
+        this.edgeBlocks = edgeBlocks;
+        this.size = size;
     }
 
-    public static SubGridMovementCollider generate(SubGridBlocks subGridBlocks, Direction direction) {
-        LongList longList = new LongArrayList();
-        MutableBlockPos mutableBlockPos = new MutableBlockPos();
-        Direction direction2 = direction.getOpposite();
+    public static SubGridMovementCollider generate(SubGridBlocks blocks, Direction movement) {
+        LongList edgeBlocks = new LongArrayList();
+        MutableBlockPos pos = new MutableBlockPos();
+        Direction backwards = movement.getOpposite();
+        int depth = movement.getAxis().choose(blocks.sizeX(), blocks.sizeY(), blocks.sizeZ());
 
-        for (BlockPos blockPos : getFrontSide(subGridBlocks, direction)) {
-            mutableBlockPos.set(blockPos);
-            boolean bl = false;
-            int i = direction.getAxis().choose(subGridBlocks.sizeX(), subGridBlocks.sizeY(), subGridBlocks.sizeZ());
+        for (BlockPos front : getFrontSide(blocks, movement)) {
+            pos.set(front);
+            boolean prevCollidable = false;
 
-            for (int j = 0; j < i; j++) {
-                BlockState blockState = subGridBlocks.getBlockState(mutableBlockPos);
-                if (isCollidable(blockState)) {
-                    if (!bl) {
-                        longList.add(mutableBlockPos.asLong());
+            for (int j = 0; j < depth; j++) {
+                if (isCollidable(blocks.getBlockState(pos))) {
+                    if (!prevCollidable) {
+                        edgeBlocks.add(pos.asLong());
                     }
 
-                    bl = true;
+                    prevCollidable = true;
                 } else {
-                    bl = false;
+                    prevCollidable = false;
                 }
 
-                mutableBlockPos.move(direction2);
+                pos.move(backwards);
             }
         }
 
-        return new SubGridMovementCollider(longList, new BlockPos(subGridBlocks.sizeX(), subGridBlocks.sizeY(), subGridBlocks.sizeZ()));
+        return new SubGridMovementCollider(edgeBlocks, new BlockPos(blocks.sizeX(), blocks.sizeY(), blocks.sizeZ()));
     }
 
-    private static Iterable<BlockPos> getFrontSide(SubGridBlocks subGridBlocks, Direction direction) {
-        BlockPos blockPos = new BlockPos(
-                Math.max(direction.getStepX(), 0) * (subGridBlocks.sizeX() - 1),
-                Math.max(direction.getStepY(), 0) * (subGridBlocks.sizeY() - 1),
-                Math.max(direction.getStepZ(), 0) * (subGridBlocks.sizeZ() - 1)
+    private static Iterable<BlockPos> getFrontSide(SubGridBlocks blocks, Direction movement) {
+        BlockPos start = new BlockPos(
+                Math.max(movement.getStepX(), 0) * (blocks.sizeX() - 1),
+                Math.max(movement.getStepY(), 0) * (blocks.sizeY() - 1),
+                Math.max(movement.getStepZ(), 0) * (blocks.sizeZ() - 1)
         );
-        BlockPos blockPos2 = blockPos.offset(
-                direction.getAxis() == Axis.X ? 0 : subGridBlocks.sizeX() - 1,
-                direction.getAxis() == Axis.Y ? 0 : subGridBlocks.sizeY() - 1,
-                direction.getAxis() == Axis.Z ? 0 : subGridBlocks.sizeZ() - 1
+        BlockPos end = start.offset(
+                movement.getAxis() == Axis.X ? 0 : blocks.sizeX() - 1,
+                movement.getAxis() == Axis.Y ? 0 : blocks.sizeY() - 1,
+                movement.getAxis() == Axis.Z ? 0 : blocks.sizeZ() - 1
         );
-        return BlockPos.betweenClosed(blockPos, blockPos2);
+        return BlockPos.betweenClosed(start, end);
     }
 
-    public boolean checkCollision(Level level, BlockPos blockPos) {
-        int i = blockPos.getY();
-        int j = i + this.size.getY() - 1;
-        if (i >= level.getMinBuildHeight() && j < level.getMaxBuildHeight()) {
-            MutableBlockPos mutableBlockPos = new MutableBlockPos();
-            LongIterator longIterator = this.edgeBlocks.longIterator();
+    public boolean checkCollision(Level level, BlockPos origin) {
+        int bottom = origin.getY();
+        int top = bottom + this.size.getY() - 1;
 
-            while (longIterator.hasNext()) {
-                mutableBlockPos.set(longIterator.nextLong());
-                mutableBlockPos.move(blockPos);
-                if (isCollidable(level.getBlockState(mutableBlockPos))) {
+        if (bottom >= level.getMinY() && top < level.getMaxY()) {
+            MutableBlockPos pos = new MutableBlockPos();
+            LongIterator iterator = this.edgeBlocks.longIterator();
+
+            while (iterator.hasNext()) {
+                pos.set(iterator.nextLong());
+                pos.move(origin);
+
+                if (isCollidable(level.getBlockState(pos)))
                     return true;
-                }
             }
 
             return false;

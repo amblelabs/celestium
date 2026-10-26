@@ -19,32 +19,40 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 
 public class SubGrid implements BlockGetter, CollisionGetter {
     protected final Level level;
     protected final GridCarrier carrier;
     private SubGridBlocks blocks = new SubGridBlocks(0, 0, 0);
     protected Holder<Biome> biome;
+
     private AABB boundingBox = new AABB(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    private int version;
 
-    public SubGrid(Level level, GridCarrier gridCarrier) {
+    private @Nullable Object renderCache;
+
+    public SubGrid(Level level, GridCarrier carrier) {
         this.level = level;
-        this.carrier = gridCarrier;
-        this.biome = level.registryAccess().registryOrThrow(Registries.BIOME).getHolderOrThrow(Biomes.PLAINS);
-        this.updatePosition(gridCarrier.getX(), gridCarrier.getY(), gridCarrier.getZ());
+        this.carrier = carrier;
+        this.biome = level.registryAccess().lookupOrThrow(Registries.BIOME).getOrThrow(Biomes.PLAINS);
+        this.updatePosition(carrier.getX(), carrier.getY(), carrier.getZ());
     }
 
-    public void updatePosition(double d, double e, double f) {
-        this.boundingBox = new AABB(d, e, f, d + this.blocks.sizeX() + 1.0, e + this.blocks.sizeY() + 1.0, f + this.blocks.sizeZ() + 1.0);
+    public void updatePosition(double x, double y, double z) {
+        this.boundingBox = new AABB(x, y, z, x + this.blocks.sizeX() + 1, y + this.blocks.sizeY() + 1, z + this.blocks.sizeZ() + 1);
     }
 
-    public void setBlocks(SubGridBlocks subGridBlocks) {
-        this.blocks = subGridBlocks;
+    public void setBlocks(SubGridBlocks blocks) {
+        this.blocks = blocks;
+        this.version++;
+
         this.updatePosition(this.carrier.getX(), this.carrier.getY(), this.carrier.getZ());
     }
 
     public void setBiome(Holder<Biome> holder) {
         this.biome = holder;
+        this.version++;
     }
 
     public Level level() {
@@ -52,31 +60,28 @@ public class SubGrid implements BlockGetter, CollisionGetter {
     }
 
     @Override
-    public BlockState getBlockState(BlockPos blockPos) {
+    public @NonNull BlockState getBlockState(@NonNull BlockPos blockPos) {
         return this.blocks.getBlockState(blockPos);
     }
 
     @Override
-    public FluidState getFluidState(BlockPos blockPos) {
+    public @NonNull FluidState getFluidState(@NonNull BlockPos blockPos) {
         return this.getBlockState(blockPos).getFluidState();
-    }
-
-    @Override
-    public boolean isPotato() {
-        return false;
     }
 
     @Nullable
     @Override
-    public BlockEntity getBlockEntity(BlockPos blockPos) {
+    public BlockEntity getBlockEntity(@NonNull BlockPos blockPos) {
         return null;
     }
 
+    @Override
     public int getHeight() {
         return this.blocks.sizeY();
     }
 
-    public int getMinBuildHeight() {
+    @Override
+    public int getMinY() {
         return 0;
     }
 
@@ -96,17 +101,29 @@ public class SubGrid implements BlockGetter, CollisionGetter {
         return this.biome;
     }
 
+    public int getVersion() {
+        return version;
+    }
+
+    public @Nullable Object getRenderCache() {
+        return renderCache;
+    }
+
+    public void setRenderCache(@Nullable Object renderCache) {
+        this.renderCache = renderCache;
+    }
+
     public AABB getNextBoundingBox() {
         return this.boundingBox;
     }
 
     public AABB getKnownBoundingBox() {
-        Vec3 vec3 = this.getLastMovement();
-        return this.boundingBox.move(-vec3.x, -vec3.y, -vec3.z);
+        Vec3 lastMovement = this.getLastMovement();
+        return this.boundingBox.move(-lastMovement.x, -lastMovement.y, -lastMovement.z);
     }
 
     @Override
-    public WorldBorder getWorldBorder() {
+    public @NonNull WorldBorder getWorldBorder() {
         return this.level.getWorldBorder();
     }
 
@@ -117,7 +134,7 @@ public class SubGrid implements BlockGetter, CollisionGetter {
     }
 
     @Override
-    public List<VoxelShape> getEntityCollisions(@Nullable Entity entity, AABB aABB) {
+    public @NonNull List<VoxelShape> getEntityCollisions(@Nullable Entity entity, @NonNull AABB aABB) {
         return List.of();
     }
 

@@ -1,6 +1,6 @@
-package dev.amblelabs.celestium.core;
+package dev.amblelabs.celestium.init;
 
-import dev.amblelabs.celestium.core.items.PocketStarItem;
+import dev.amblelabs.celestium.world.item.PocketStarItem;
 import dev.amblelabs.celestium.platform.Services;
 import dev.amblelabs.celestium.platform.services.PlatformHelper;
 import net.minecraft.core.Holder;

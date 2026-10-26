@@ -7,5 +7,5 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 public interface FlyingTickable {
-    void flyingTick(Level level, SubGridBlocks subGridBlocks, BlockState blockState, BlockPos blockPos, Vec3 vec3, Direction direction);
+    void flyingTick(Level level, SubGridBlocks blocks, BlockState state, BlockPos pos, Vec3 worldPos, Direction movement);
 }

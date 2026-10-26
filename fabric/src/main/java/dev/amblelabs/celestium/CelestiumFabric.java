@@ -1,9 +1,12 @@
 package dev.amblelabs.celestium;
 
-import dev.amblelabs.celestium.core.CelestiumEntityTypeIds;
-import dev.amblelabs.celestium.core.CelestiumEntityTypes;
-import dev.amblelabs.celestium.core.entities.PocketStarEntity;
+import dev.amblelabs.celestium.init.CelestiumEntityTypeIds;
+import dev.amblelabs.celestium.init.CelestiumEntityTypes;
+import dev.amblelabs.celestium.network.protocol.game.GridWaitPayload;
+import dev.amblelabs.celestium.network.protocol.game.SubGridPayload;
+import dev.amblelabs.celestium.world.level.entitiy.PocketStarEntity;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -17,15 +20,13 @@ public class CelestiumFabric implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        // This method is invoked by the Fabric mod loader when it is ready
-        // to load your mod. You can access Fabric and Common code in this
-        // project.
-
-        // Use Fabric to bootstrap the Common mod.
-        Celestium.LOGGER.info("Hello Fabric world!");
         Celestium.init();
 
         register(CelestiumEntityTypeIds.POCKET_STAR, CelestiumEntityTypes.POCKET_STAR, PocketStarEntity.createPocketStarAttributes());
+        register(CelestiumEntityTypeIds.GRID_CARRIER, CelestiumEntityTypes.GRID_CARRIER);
+
+        PayloadTypeRegistry.clientboundPlay().register(SubGridPayload.TYPE, SubGridPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(GridWaitPayload.TYPE, GridWaitPayload.CODEC);
     }
 
     private static <T extends Entity> EntityType<T> register(ResourceKey<EntityType<?>> key, EntityType<T> entity) {

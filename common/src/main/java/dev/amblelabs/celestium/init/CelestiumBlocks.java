@@ -1,7 +1,8 @@
-package dev.amblelabs.celestium.core;
+package dev.amblelabs.celestium.init;
 
 import dev.amblelabs.celestium.Celestium;
-import dev.amblelabs.celestium.core.blocks.TestSpongeBlock;
+import dev.amblelabs.celestium.world.level.block.FloataterBlock;
+import dev.amblelabs.celestium.world.level.block.TestSpongeBlock;
 import dev.amblelabs.celestium.platform.Services;
 import dev.amblelabs.celestium.platform.services.PlatformHelper;
 import net.minecraft.core.Holder;
@@ -15,7 +16,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
-import net.minecraft.world.level.material.PushReaction;
 
 import java.util.function.Function;
 
@@ -28,6 +28,12 @@ public class CelestiumBlocks {
                             .strength(0.5F)
                             .sound(SoundType.STONE)
                     ));
+
+    public static final Holder<Block> FLOATATER = block("floatater",
+            properties -> new FloataterBlock(properties
+                    .strength(0.5F)
+                    .sound(SoundType.STONE)
+            ));
 
     private static <T extends Block> Holder<T> block(String name, Function<BlockBehaviour.Properties, T> function) {
         return REGISTRAR.registerHolder(name, id -> {

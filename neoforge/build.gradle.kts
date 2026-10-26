@@ -1,9 +1,9 @@
 plugins {
     `multiloader-loader`
     id("net.neoforged.moddev") version "2.0.148"
-    kotlin("jvm") version "2.2.0"
-    id("com.google.devtools.ksp") version "2.2.0-2.0.2" // TODO(template): review
-    id("dev.kikugie.fletching-table.neoforge") version "0.1.0-alpha.13" // TODO(template): review
+    kotlin("jvm") version "2.4.0"
+//    id("com.google.devtools.ksp") version "2.3.12" // TODO(template): review
+//    id("dev.kikugie.fletching-table.neoforge") version "0.1.0-alpha.13" // TODO(template): review
 }
 
 neoForge {
