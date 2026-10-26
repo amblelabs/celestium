@@ -140,7 +140,7 @@ public class SpaceSkyRenderer {
 
     private static void renderBody(VertexConsumer buffer, PoseStack.Pose parent, AstralBody body, float seconds, boolean starPass) {
         PoseStack.Pose orbit = parent.copy();
-        orbit.rotate(Axis.YP, Mth.wrapDegrees(seconds * body.orbit().speed() * 2f));
+        orbit.rotate(Axis.YP, Mth.wrapDegrees(seconds * body.orbit().speed() * 0.001f));
         orbit.translate(body.orbit().distanceFromCenter(), 0, 0);
 
         for (AstralBody satellite : body.satellites()) {
