@@ -5,8 +5,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -14,6 +12,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.redstone.Orientation;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -27,18 +26,19 @@ public class TestSpongeBlock extends Block {
         positions.add(pos);
     }
 
-
     public TestSpongeBlock(final BlockBehaviour.Properties properties) {
         super(properties);
     }
 
-    protected void onPlace(final BlockState state, final Level level, final BlockPos pos, final BlockState oldState, final boolean movedByPiston) {
+    @Override
+    protected void onPlace(final BlockState state, final @NonNull Level level, final @NonNull BlockPos pos, final BlockState oldState, final boolean movedByPiston) {
         if (!oldState.is(state.getBlock())) {
             this.tryAbsorbWater(level, pos);
         }
     }
 
-    protected void neighborChanged(final BlockState state, final Level level, final BlockPos pos, final Block block, final @Nullable Orientation orientation, final boolean movedByPiston) {
+    @Override
+    protected void neighborChanged(final @NonNull BlockState state, final @NonNull Level level, final @NonNull BlockPos pos, final @NonNull Block block, final @Nullable Orientation orientation, final boolean movedByPiston) {
         this.tryAbsorbWater(level, pos);
         super.neighborChanged(state, level, pos, block, orientation, movedByPiston);
     }
@@ -46,11 +46,10 @@ public class TestSpongeBlock extends Block {
     protected void tryAbsorbWater(final Level level, final BlockPos pos) {
         positions.clear();
         if (this.removeWaterBreadthFirstSearch(level, pos)) {
-            level.playSound((Entity)null, pos, SoundEvents.SPONGE_ABSORB, SoundSource.BLOCKS, 1.0F, 1.0F);
+            level.playSound(null, pos, SoundEvents.SPONGE_ABSORB, SoundSource.BLOCKS, 1.0F, 1.0F);
 
             System.out.println("Distributed gas: " + positions.size() + " blocks");
         }
-
     }
 
     private boolean removeWaterBreadthFirstSearch(final Level level, final BlockPos startPos) {
@@ -69,9 +68,8 @@ public class TestSpongeBlock extends Block {
                     return BlockPos.TraversalNodeStatus.SKIP;
                 } else {
                     Block patt0$temp = state.getBlock();
-                    if (patt0$temp instanceof BucketPickup) {
-                        BucketPickup bucketPickup = (BucketPickup)patt0$temp;
-                        if (!bucketPickup.pickupBlock((LivingEntity)null, level, pos, state).isEmpty()) {
+                    if (patt0$temp instanceof BucketPickup bucketPickup) {
+                        if (!bucketPickup.pickupBlock(null, level, pos, state).isEmpty()) {
                             this.Poses(pos);
                             return BlockPos.TraversalNodeStatus.ACCEPT;
                         }

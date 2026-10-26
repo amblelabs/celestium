@@ -18,6 +18,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
+import org.jspecify.annotations.NonNull;
 
 public class PocketStarEntityRenderer extends MobRenderer<PocketStarEntity, LivingEntityRenderState, PocketStarEntityModel> {
 
@@ -25,7 +26,7 @@ public class PocketStarEntityRenderer extends MobRenderer<PocketStarEntity, Livi
     private static final RenderType EMISSIVE = RenderTypes.eyes(TEXTURE);
     private static final RenderType RAYS_RENDER_TYPE = RenderTypes.dragonRays();
 
-    private static final float HALF_SQRT_3 = (float)(Mth.sqrt(3.0F) / 2.0F);
+    private static final float HALF_SQRT_3 = Mth.sqrt(3.0F) / 2.0F;
     private static final float BEAM_POS_X = 0.0F;
     private static final float BEAM_POS_Y = 1.45F;
     private static final float BEAM_POS_Z = 0.0F;
@@ -38,31 +39,31 @@ public class PocketStarEntityRenderer extends MobRenderer<PocketStarEntity, Livi
     public PocketStarEntityRenderer(EntityRendererProvider.Context context) {
         super(context, new PocketStarEntityModel(context.bakeLayer(PocketStarEntityModel.LAYER_LOCATION)), 0.3f);
         this.addLayer(new EyesLayer<>(this) {
-            @Override public RenderType renderType() {
+            @Override public @NonNull RenderType renderType() {
                 return EMISSIVE;
             }
         });
     }
 
     @Override
-    public void extractRenderState(PocketStarEntity entity, LivingEntityRenderState state, float partialTicks) {
+    public void extractRenderState(@NonNull PocketStarEntity entity, @NonNull LivingEntityRenderState state, float partialTicks) {
         super.extractRenderState(entity, state, partialTicks);
         state.deathTime = 0.0f;
         state.hasRedOverlay = false;
     }
 
     @Override
-    public LivingEntityRenderState createRenderState() {
+    public @NonNull LivingEntityRenderState createRenderState() {
         return new LivingEntityRenderState();
     }
 
     @Override
-    public Identifier getTextureLocation(LivingEntityRenderState state) {
+    public @NonNull Identifier getTextureLocation(@NonNull LivingEntityRenderState state) {
         return TEXTURE;
     }
 
     @Override
-    public void submit(LivingEntityRenderState state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera) {
+    public void submit(LivingEntityRenderState state, PoseStack poseStack, @NonNull SubmitNodeCollector collector, @NonNull CameraRenderState camera) {
         float starY = getY(state.ageInTicks);
         poseStack.pushPose();
         poseStack.translate(BEAM_POS_X, BEAM_POS_Y + starY, BEAM_POS_Z);
@@ -89,8 +90,8 @@ public class PocketStarEntityRenderer extends MobRenderer<PocketStarEntity, Livi
             Quaternionf rayRotation = new Quaternionf();
 
             for(int i = 0; i < RAY_COUNT; ++i) {
-                rayRotation.rotationXYZ(random.nextFloat() * ((float)Mth.PI * 2F), random.nextFloat() * ((float)Mth.PI * 2F), random.nextFloat() * ((float)Mth.PI * 2F))
-                        .rotateXYZ(random.nextFloat() * ((float)Mth.PI * 2F), random.nextFloat() * ((float)Mth.PI * 2F), random.nextFloat() * ((float)Mth.PI * 2F) + timeInTicks * ((float)Mth.PI / 180F));
+                rayRotation.rotationXYZ(random.nextFloat() * (Mth.PI * 2F), random.nextFloat() * (Mth.PI * 2F), random.nextFloat() * (Mth.PI * 2F))
+                        .rotateXYZ(random.nextFloat() * (Mth.PI * 2F), random.nextFloat() * (Mth.PI * 2F), random.nextFloat() * (Mth.PI * 2F) + timeInTicks * (Mth.PI / 180F));
 
                 pose.rotate(rayRotation);
                 float length = BEAM_LENGTH * (1.0F + pulse * 0.2F);
@@ -116,7 +117,7 @@ public class PocketStarEntityRenderer extends MobRenderer<PocketStarEntity, Livi
     }
 
     public static float getY(final float timeInTicks) {
-        float hh = Mth.sin((double)(timeInTicks * 0.05F)) / 2.0F + 0.5F;
+        float hh = Mth.sin(timeInTicks * 0.05F) / 2.0F + 0.5F;
         hh = (hh * hh + hh) * 0.4F;
         return hh - 1.4F;
     }

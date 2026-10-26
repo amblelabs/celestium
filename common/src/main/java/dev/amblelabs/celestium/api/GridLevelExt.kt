@@ -10,7 +10,7 @@ fun Level.createSubGrid(carrier: GridCarrier): SubGrid {
 }
 
 fun Level.grids(): MutableMap<UUID, SubGrid> {
-    return (this as GridLevel).`celestium$grids`();
+    return (this as GridLevel).`celestium$grids`()
 }
 
 fun Level.snapshot(): List<SubGrid> {
