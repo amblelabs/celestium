@@ -1,7 +1,7 @@
 plugins {
+    kotlin("jvm")
     `multiloader-common`
     id("dev.kikugie.loom-back-compat")
-    kotlin("jvm")
 //    id("com.google.devtools.ksp") version "2.3.12" // TODO(template): review
 //    id("dev.kikugie.fletching-table.fabric") version "0.1.0-alpha.14" // TODO(template): review
 }
