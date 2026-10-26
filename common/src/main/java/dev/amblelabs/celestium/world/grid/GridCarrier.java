@@ -30,7 +30,6 @@ import org.jspecify.annotations.NonNull;
 
 public class GridCarrier extends Entity {
 
-    public static final int LERP_STEPS = 2;
     private static final EntityDataAccessor<Direction> MOVEMENT_DIRECTION = SynchedEntityData.defineId(GridCarrier.class, EntityDataSerializers.DIRECTION);
     private static final EntityDataAccessor<Float> MOVEMENT_SPEED = SynchedEntityData.defineId(GridCarrier.class, EntityDataSerializers.FLOAT);
 
@@ -163,7 +162,7 @@ public class GridCarrier extends Entity {
 
     @Override
     protected @NonNull InterpolationHandler createInterpolationHandler() {
-        return LinearInterpolationHandler.create(this, LERP_STEPS);
+        return LinearInterpolationHandler.create(this);
     }
 
     @Override
