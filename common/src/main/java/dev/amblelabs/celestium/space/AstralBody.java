@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 public record AstralBody(boolean isStar, int defaultColor, float axis, float spinSpeed, Orbit orbit, @Nullable Atmosphere atmosphere, boolean isSatellite, List<ResourceKey<AstralBody>> satellites, int sizeX, int sizeY, int sizeZ) {
+    //TODO: bash a better system for colours implementation for datapacks <3
     public static final Codec<AstralBody> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.BOOL.optionalFieldOf("is_star", false).forGetter(AstralBody::isStar),
             Codec.INT.fieldOf("default_color").forGetter(AstralBody::defaultColor),
