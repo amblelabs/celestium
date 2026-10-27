@@ -69,6 +69,7 @@ public class FloataterBlock extends Block implements FlyingTickable {
 
             carrier.snapTo(minPos.getX(), minPos.getY(), minPos.getZ());
             carrier.grid().setBlocks(capture.blocks());
+            carrier.setYRot(direction.toYRot());
             carrier.grid().setBiome(level.getBiome(blockPos));
             carrier.setMovement(direction, capture.engines() * 0.1F);
             capture.remove(level);

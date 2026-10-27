@@ -15,6 +15,7 @@ import java.util.function.Consumer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.BlockPos.MutableBlockPos;
+import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -25,7 +26,7 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
-public record SubGridCapture(SubGridBlocks blocks, LongSet mask, BlockPos minPos, int engines) {
+public record SubGridCapture(SubGridBlocks blocks, LongSet mask, BlockPos minPos, Vec3i size, int engines) {
     private static final Direction[] DIRECTIONS = Direction.values();
 
     @Nullable
@@ -45,7 +46,7 @@ public record SubGridCapture(SubGridBlocks blocks, LongSet mask, BlockPos minPos
 
         MutableBlockPos pos = new MutableBlockPos();
         MutableBlockPos neighbor = new MutableBlockPos();
-        int sizeLimit = 64; // TODO: level.getGameRules().getInt(GameRules.RULE_FLOATATER_SIZE_LIMIT);
+        int sizeLimit = 256; // TODO: level.getGameRules().getInt(GameRules.RULE_FLOATATER_SIZE_LIMIT);
 
         while (!queue.isEmpty()) {
             long p = queue.dequeueLastLong();
@@ -81,7 +82,11 @@ public record SubGridCapture(SubGridBlocks blocks, LongSet mask, BlockPos minPos
             }
         }
 
-        SubGridBlocks blocks = new SubGridBlocks(maxX - minX + 1, maxY - minY + 1, maxZ - minZ + 1);
+        int sizeX = maxX - minX + 1;
+        int sizeY = maxY - minY + 1;
+        int sizeZ = maxZ - minZ + 1;
+
+        SubGridBlocks blocks = new SubGridBlocks(sizeX, sizeY, sizeZ);
         int engines = 0;
 
         for (Entry<BlockState> entry : Long2ObjectMaps.fastIterable(captured)) {
@@ -101,7 +106,7 @@ public record SubGridCapture(SubGridBlocks blocks, LongSet mask, BlockPos minPos
                 blocks.setBlockState(pos.getX() - minX, pos.getY() - minY, pos.getZ() - minZ, state);
         }
 
-        return new SubGridCapture(blocks, new LongOpenHashSet(captured.keySet()), new BlockPos(minX, minY, minZ), engines);
+        return new SubGridCapture(blocks, new LongOpenHashSet(captured.keySet()), new BlockPos(minX, minY, minZ), new Vec3i(sizeX, sizeY, sizeZ), engines);
     }
 
     private static boolean isConnected(Direction direction, VoxelShape shape, VoxelShape neighborShape, BlockState state, BlockState neighborState) {

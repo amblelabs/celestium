@@ -15,15 +15,16 @@ import net.minecraft.network.syncher.SynchedEntityData.Builder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.InterpolationHandler;
-import net.minecraft.world.entity.LinearInterpolationHandler;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
@@ -93,6 +94,22 @@ public class GridCarrier extends Entity {
         }
     }
 
+    @Override
+    public InteractionResult interact(Player player, InteractionHand hand, Vec3 location) {
+        if (hand == InteractionHand.MAIN_HAND && player.getMainHandItem().isEmpty()) {
+            this.clearMovement();
+            this.placeInTicks = 5;
+            return InteractionResult.SUCCESS;
+        }
+
+        return super.interact(player, hand, location);
+    }
+
+    @Override
+    public boolean isPickable() {
+        return !this.isRemoved();
+    }
+
     private void tickMovement(SubGridMovementCollider collider, Direction direction, float speed) {
         Vec3 from = this.position();
         Vec3 to = from.add(direction.getStepX() * speed, direction.getStepY() * speed, direction.getStepZ() * speed);
@@ -123,6 +140,24 @@ public class GridCarrier extends Entity {
     protected void defineSynchedData(Builder builder) {
         builder.define(MOVEMENT_DIRECTION, Direction.NORTH);
         builder.define(MOVEMENT_SPEED, 0f);
+    }
+
+    @Override
+    protected AABB makeBoundingBox(Vec3 pos) {
+        if (this.grid == null)
+            return super.makeBoundingBox(pos);
+
+        SubGridBlocks blocks = this.grid.getBlocks();
+        return new AABB(pos.x, pos.y, pos.z, pos.x + blocks.sizeX(), pos.y + blocks.sizeY(), pos.z + blocks.sizeZ());
+    }
+
+    @Override
+    public EntityDimensions getDimensions(Pose pose) {
+        if (this.grid == null)
+            return super.getDimensions(pose);
+
+        SubGridBlocks blocks = this.grid.getBlocks();
+        return EntityDimensions.scalable(Math.max(blocks.sizeX(), blocks.sizeZ()), blocks.sizeY());
     }
 
     @Override

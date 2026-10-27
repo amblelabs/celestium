@@ -48,6 +48,7 @@ public class SubGrid implements BlockGetter, CollisionGetter {
         this.version++;
 
         this.updatePosition(this.carrier.getX(), this.carrier.getY(), this.carrier.getZ());
+        this.carrier.refreshDimensions();
     }
 
     public void setBiome(Holder<Biome> holder) {
