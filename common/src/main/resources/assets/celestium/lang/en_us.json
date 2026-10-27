@@ -1,4 +1,5 @@
 {
   "item.celestium.pocket_star": "Pocket Star",
-  "block.celestium.floatater": "Floatater"
+  "block.celestium.floatater": "Floatater",
+  "gamerule.celestium.max_floatator_size": "Max Floatater Size"
 }

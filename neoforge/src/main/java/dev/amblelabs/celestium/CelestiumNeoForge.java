@@ -21,6 +21,6 @@ public class CelestiumNeoForge {
         Celestium.LOGGER.info("Hello NeoForge world!");
         Celestium.init();
 
-        Celestium.MAX_FLOATATER_SIZE = GameRules.registerInteger("max_flotator_size", GameRuleCategory.MISC, 256, 1);
+        Celestium.MAX_FLOATATER_SIZE = GameRules.registerInteger("max_floatator_size", GameRuleCategory.MISC, 256, 1);
     }
 }
