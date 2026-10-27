@@ -19,5 +19,13 @@
         "volume": 0.7
       }
     ]
+  },
+  "music.alone": {
+    "sounds": [
+    {
+      "name": "celestium:music/game/space/alone",
+      "stream": true
+    }
+      ]
   }
 }

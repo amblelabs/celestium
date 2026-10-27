@@ -19,12 +19,15 @@
   "attributes": {
     "minecraft:gameplay/respawn_anchor_works": false,
     "minecraft:gameplay/can_start_raid": false,
+    "minecraft:audio/ambient_sounds": {
+      "loop": "celestium:ambient.space"
+    },
     "minecraft:audio/background_music": {
       "default": {
-        "max_delay": 0,
-        "min_delay": 0,
+        "max_delay": 24000,
+        "min_delay": 2320,
         "replace_current_music": true,
-        "sound": "celestium:ambient.space"
+        "sound": "celestium:music.alone"
       }
     }
   }
