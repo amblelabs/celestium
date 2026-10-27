@@ -2,29 +2,27 @@ package dev.amblelabs.celestium.space;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.network.FriendlyByteBuf;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import org.jspecify.annotations.NonNull;
 
-public record Orbit(float speed, float distanceFromCenter) {
+public record Orbit(float speed, float distanceFromCenter, float phase) {
+
+    public static final float SPEED_SCALE = 0.001F;
+
     public static final Codec<Orbit> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.FLOAT.fieldOf("speed").forGetter(Orbit::speed),
-            Codec.FLOAT.fieldOf("distance_from_center").forGetter(Orbit::distanceFromCenter)
+            Codec.FLOAT.fieldOf("distance_from_center").forGetter(Orbit::distanceFromCenter),
+            Codec.FLOAT.optionalFieldOf("phase", 0.0F).forGetter(Orbit::phase)
     ).apply(instance, Orbit::new));
 
-    public static final StreamCodec<FriendlyByteBuf, Orbit> STREAM_CODEC = new StreamCodec<>() {
+    public static final StreamCodec<ByteBuf, Orbit> STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.FLOAT, Orbit::speed,
+            ByteBufCodecs.FLOAT, Orbit::distanceFromCenter,
+            ByteBufCodecs.FLOAT, Orbit::phase,
+            Orbit::new);
 
-        @Override
-        public void encode(FriendlyByteBuf output, Orbit value) {
-            output.writeFloat(value.speed());
-            output.writeFloat(value.distanceFromCenter());
-        }
-
-        @Override
-        public @NonNull Orbit decode(FriendlyByteBuf input) {
-            float speed = input.getFloat(0);
-            float distanceFromCenter = input.getFloat(1);
-            return new Orbit(speed, distanceFromCenter);
-        }
-    };
+    public float angleDegrees(double ticks) {
+        return (float) ((phase + ticks / 20.0 * speed * SPEED_SCALE) % 360.0);
+    }
 }

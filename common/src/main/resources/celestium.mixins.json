@@ -12,10 +12,11 @@
     "grid.ServerGamePacketListenerImplMixin",
     "grid.ServerLevelEntityCallbacksMixin",
     "grid.ServerLevelMixin",
-    "space.EntityMixin"
+    "space.EntityMixin",
+    "space.LevelMixin",
+    "space.ServerLevelMixin"
   ],
   "client": [
-    "client.CameraMixin",
     "client.SpaceSkyRendererMixin",
     "grid.client.ClientLevelEntityCallbacksMixin",
     "grid.client.ClientLevelMixin"

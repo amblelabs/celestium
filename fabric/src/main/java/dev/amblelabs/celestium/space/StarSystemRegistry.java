@@ -12,6 +12,6 @@ public class StarSystemRegistry {
     public static final Registry<StarSystem> STAR_SYSTEM_REGISTRY = FabricRegistryBuilder.create(STAR_SYSTEM_REGISTRY_KEY).buildAndRegister();
 
     public static void initialize() {
-        Registry.register(STAR_SYSTEM_REGISTRY, Celestium.id("solar_system"), StarSystemEntries.SOLAR_SYSTEM);
+        StarSystemEntries.ENTRIES.forEach((id, starSystem) -> Registry.register(STAR_SYSTEM_REGISTRY, id, starSystem));
     }
 }

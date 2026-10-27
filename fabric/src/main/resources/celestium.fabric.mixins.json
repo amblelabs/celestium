@@ -7,7 +7,6 @@
   "mixins": [],
   "client": [],
   "server": [
-    "TeleportAstralBodyMixin"
   ],
   "injectors": {
     "defaultRequire": 1

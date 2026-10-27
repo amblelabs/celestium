@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Set;
 
@@ -39,6 +40,14 @@ public class EntityMixin {
             entity.teleportTo(spaceLevel, 0, 128, 0, Set.of(), 0, 0, false);
         } else if(entity.level() == spaceLevel && entity.getY() <= 0) {
             entity.teleportTo(overworldLevel, 0, 256, 0, Set.of(), 0, 0, false);
+        }
+    }
+
+    @Inject(method = "getGravity", at = @At("HEAD"), cancellable = true)
+    private void celestium$zeroGravity(CallbackInfoReturnable<Double> cir) {
+        Entity self = (Entity) (Object) this;
+        if (self.level().dimension().equals(CelestiumDimensions.SPACE_KEY)) {
+            cir.setReturnValue(0.0);
         }
     }
 }
