@@ -28,10 +28,11 @@ public class FloataterBlock extends Block implements FlyingTickable {
 
     public static final EnumProperty<Direction> FACING = DirectionalBlock.FACING;
     public static final BooleanProperty TRIGGERED = BlockStateProperties.TRIGGERED;
+    public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
 
     public FloataterBlock(Properties properties) {
         super(properties);
-        this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(TRIGGERED, false));
+        this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(TRIGGERED, false).setValue(POWERED, false));
     }
 
     @Override
@@ -54,13 +55,17 @@ public class FloataterBlock extends Block implements FlyingTickable {
         boolean powered = level.hasNeighborSignal(pos);
 
         if (powered != state.getValue(TRIGGERED)) {
-            if (powered) level.scheduleTick(pos, this, 1);
+            if (powered) {
+                state = state.cycle(POWERED);
+                if (state.getValue(POWERED)) level.scheduleTick(pos, this, 1);
+            }
             level.setBlock(pos, state.setValue(TRIGGERED, powered), Block.UPDATE_CLIENTS);
         }
     }
 
     @Override
     protected void tick(BlockState blockState, @NonNull ServerLevel level, @NonNull BlockPos blockPos, @NonNull RandomSource randomSource) {
+        if (!blockState.getValue(POWERED)) return;
         Direction direction = blockState.getValue(FACING);
         SubGridCapture capture = SubGridCapture.scan(level, blockPos, direction);
 
@@ -81,7 +86,7 @@ public class FloataterBlock extends Block implements FlyingTickable {
 
     @Override
     protected void createBlockStateDefinition(Builder<Block, BlockState> builder) {
-        builder.add(FACING, TRIGGERED);
+        builder.add(FACING, TRIGGERED, POWERED);
     }
 
     @Override
