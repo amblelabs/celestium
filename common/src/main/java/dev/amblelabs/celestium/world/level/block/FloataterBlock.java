@@ -36,7 +36,7 @@ public class FloataterBlock extends Block implements FlyingTickable {
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext blockPlaceContext) {
-        return this.defaultBlockState().setValue(FACING, blockPlaceContext.getNearestLookingDirection());
+        return this.defaultBlockState().setValue(FACING, blockPlaceContext.getPlayer().isCrouching() ? blockPlaceContext.getNearestLookingDirection().getOpposite() : blockPlaceContext.getNearestLookingDirection());
     }
 
     @Override
