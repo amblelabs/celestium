@@ -6,13 +6,14 @@ import net.minecraft.resources.Identifier;
 
 import java.util.List;
 
-public record AstralBody(Identifier id, boolean isStar, int defaultColor, float axis, Orbit orbit, boolean isSatellite, List<AstralBody> satellites, int sizeX, int sizeY, int sizeZ) {
+public record AstralBody(Identifier id, boolean isStar, int defaultColor, float axis, Orbit orbit, Atmosphere atmosphere, boolean isSatellite, List<AstralBody> satellites, int sizeX, int sizeY, int sizeZ) {
     public static final Codec<AstralBody> CODEC = Codec.recursive("AstralBody", selfCodec -> RecordCodecBuilder.create(instance -> instance.group(
         Identifier.CODEC.fieldOf("id").forGetter(AstralBody::id),
         Codec.BOOL.fieldOf("is_star").forGetter(AstralBody::isStar),
         Codec.INT.fieldOf("default_color").forGetter(AstralBody::defaultColor),
         Codec.FLOAT.fieldOf("axis").forGetter(AstralBody::axis),
         Orbit.CODEC.fieldOf("orbit").forGetter(AstralBody::orbit),
+        Atmosphere.CODEC.fieldOf("atmosphere").forGetter(AstralBody::atmosphere),
         Codec.BOOL.fieldOf("is_satellite").forGetter(AstralBody::isSatellite),
             selfCodec.listOf().fieldOf("satellites").forGetter(AstralBody::satellites),
         Codec.INT.fieldOf("size_x").forGetter(AstralBody::sizeX),
