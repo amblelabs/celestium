@@ -1,9 +1,9 @@
 package dev.amblelabs.celestium;
 
-import dev.amblelabs.celestium.init.CelestiumBlocks;
-import dev.amblelabs.celestium.init.CelestiumEntityTypes;
-import dev.amblelabs.celestium.init.CelestiumItems;
-import dev.amblelabs.celestium.init.CelestiumSounds;
+import dev.amblelabs.celestium.init.*;
+import net.minecraft.core.Registry;
+import net.minecraft.core.particles.SimpleParticleType;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 
 import org.slf4j.Logger;
@@ -22,11 +22,19 @@ public class Celestium {
         return Identifier.fromNamespaceAndPath(MOD_ID, s);
     }
 
+    public static final SimpleParticleType THRUSTER = new SimpleParticleType(false) {};
+
     public static void init() {
         CelestiumSounds.register();
         CelestiumBlocks.register();
         CelestiumItems.register();
 
         CelestiumEntityTypes.initialize();
+
+        Registry.register(
+                BuiltInRegistries.PARTICLE_TYPE,
+                Identifier.fromNamespaceAndPath(MOD_ID, "thruster"),
+                THRUSTER
+        );
     }
 }

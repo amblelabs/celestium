@@ -1,5 +1,6 @@
 package dev.amblelabs.celestium.world.level.block;
 
+import dev.amblelabs.celestium.Celestium;
 import dev.amblelabs.celestium.init.CelestiumEntityTypes;
 import dev.amblelabs.celestium.world.grid.FlyingTickable;
 import dev.amblelabs.celestium.world.grid.GridCarrier;
@@ -94,7 +95,7 @@ public class FloataterBlock extends Block implements FlyingTickable {
                     worldPos = worldPos.add(d)
                             .add(exhaust.getStepX() * d, exhaust.getStepY() * d, exhaust.getStepZ() * d);
 
-                    level.addParticle(ParticleTypes.CLOUD, worldPos.x, worldPos.y, worldPos.z, 0, 0, 0);
+                    level.addParticle(Celestium.THRUSTER, worldPos.x, worldPos.y, worldPos.z, 0, -0.2, 0);
                 }
             }
         }

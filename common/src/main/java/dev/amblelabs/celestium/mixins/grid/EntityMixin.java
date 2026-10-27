@@ -152,7 +152,7 @@ public abstract class EntityMixin implements GridRider {
 
    @WrapOperation(method = "move", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;maybeBackOffFromEdge(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/entity/MoverType;)Lnet/minecraft/world/phys/Vec3;"))
    public Vec3 actuallyMoveWithAttachedGrid(Entity instance, Vec3 delta, MoverType moverType, Operation<Vec3> original) {
-      Vec3 res = instance instanceof Player player && player.isShiftKeyDown() ? delta : original.call(instance, delta, moverType);
+      Vec3 res = instance instanceof Player player && player.isShiftKeyDown() ? delta : original.call(instance, delta, moverType); /// FIXME: better check
 
       boolean previouslyIgnoring = this.ignoreGridCollision;
       this.ignoreGridCollision = moverType == MoverType.PLAYER;
