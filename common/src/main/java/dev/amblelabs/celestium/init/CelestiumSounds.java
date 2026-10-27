@@ -10,6 +10,9 @@ public class CelestiumSounds {
 
     public static final SoundEvent SPACE_AMBIENT = register("ambient.space");
 
+
+    public static final SoundEvent ALONE = register("music.alone");
+
     public static final SoundEvent ENTITY_PLAYER_BREATHING = register("entity.player.breathing");
     public static final SoundEvent ENTITY_PLAYER_HEARTBEAT = register("entity.player.heartbeat");
 
