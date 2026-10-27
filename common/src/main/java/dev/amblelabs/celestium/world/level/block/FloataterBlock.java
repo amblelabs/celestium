@@ -95,7 +95,7 @@ public class FloataterBlock extends Block implements FlyingTickable {
                     worldPos = worldPos.add(d)
                             .add(exhaust.getStepX() * d, exhaust.getStepY() * d, exhaust.getStepZ() * d);
 
-                    level.addParticle(Celestium.THRUSTER, worldPos.x, worldPos.y, worldPos.z, 0, -0.2, 0);
+                    level.addParticle(Celestium.THRUSTER, worldPos.x, worldPos.y, worldPos.z, 0, 0, 0);
                 }
             }
         }

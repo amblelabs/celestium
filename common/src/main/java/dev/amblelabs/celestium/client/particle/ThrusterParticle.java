@@ -31,7 +31,7 @@ public class ThrusterParticle extends SingleQuadParticle {
         this.bCol = col;
         this.quadSize *= 5F;
         int baseLifetime = (int) (8.0F / (this.random.nextFloat() * 0.8 + 0.3));
-        this.lifetime = Math.max((int) (baseLifetime * 2.5F), 1);
+        this.lifetime = Math.max((int) (baseLifetime * 5.0F), 1);
         this.hasPhysics = false;
         this.setSpriteFromAge(sprites);
         this.updateGradient();
