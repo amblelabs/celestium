@@ -1,0 +1,30 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "celestium:block/floatater",
+      "x": 90
+    },
+    "facing=east": {
+      "model": "celestium:block/floatater",
+      "x": 90,
+      "y": 90
+    },
+    "facing=south": {
+      "model": "celestium:block/floatater",
+      "x": 90,
+      "y": 180
+    },
+    "facing=west": {
+      "model": "celestium:block/floatater",
+      "x": 90,
+      "y": 270
+    },
+    "facing=up": {
+      "model": "celestium:block/floatater"
+    },
+    "facing=down": {
+      "model": "celestium:block/floatater",
+      "x": 180
+    }
+  }
+}

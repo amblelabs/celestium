@@ -14,7 +14,8 @@ public class AstralBodyEntries {
 
     // MOONS
     public static final AstralBody LUNA = new AstralBody(Celestium.id("luna"), false,
-            ARGB.color(255, 225, 225, 225), 24.5424f, new Orbit(0.4f, 125), true, List.of(), 10, 10, 10);
+            ARGB.color(255, 225, 225, 225), 24.5424f, new Orbit(0.4f, 125),
+            true, List.of(), 10, 10, 10);
 
     // PLANETS
     public static final AstralBody MERCURY = new AstralBody(Celestium.id("mercury"), false,

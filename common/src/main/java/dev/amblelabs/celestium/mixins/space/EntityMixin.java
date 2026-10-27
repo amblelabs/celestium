@@ -4,7 +4,6 @@ import dev.amblelabs.celestium.init.CelestiumDimensions;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -14,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.Set;
 
 @Mixin(value = Entity.class, priority = 1500)
-public class TeleportUpMixin {
+public class EntityMixin {
 
     @Inject(method="tick",at=@At("HEAD"))
     private void celestium$teleportTo(CallbackInfo ci) {

@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "down": "celestium:block/floatater_bottom",
+    "east": "celestium:block/floatater_side",
+    "north": "celestium:block/floatater_side",
+    "particle": "celestium:block/floatater_side",
+    "south": "celestium:block/floatater_side",
+    "up": "celestium:block/floatater_top",
+    "west": "celestium:block/floatater_side"
+  }
+}
