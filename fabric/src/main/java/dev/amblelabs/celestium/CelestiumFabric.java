@@ -8,6 +8,7 @@ import dev.amblelabs.celestium.space.AstralBodyRegistry;
 import dev.amblelabs.celestium.space.StarSystemRegistry;
 import dev.amblelabs.celestium.world.level.entitiy.PocketStarEntity;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.gamerule.v1.GameRuleBuilder;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.core.Registry;
@@ -23,6 +24,8 @@ public class CelestiumFabric implements ModInitializer {
     @Override
     public void onInitialize() {
         Celestium.init();
+
+        Celestium.MAX_FLOATATER_SIZE = GameRuleBuilder.forInteger(256).minValue(1).buildAndRegister(Celestium.id("max_floatater_size"));
 
         register(CelestiumEntityTypeIds.POCKET_STAR, CelestiumEntityTypes.POCKET_STAR, PocketStarEntity.createPocketStarAttributes());
         register(CelestiumEntityTypeIds.GRID_CARRIER, CelestiumEntityTypes.GRID_CARRIER);

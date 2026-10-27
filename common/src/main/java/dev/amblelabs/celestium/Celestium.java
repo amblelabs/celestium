@@ -6,6 +6,7 @@ import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 
+import net.minecraft.world.level.gamerules.GameRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +24,7 @@ public class Celestium {
     }
 
     public static final SimpleParticleType THRUSTER = new SimpleParticleType(false) {};
+    public static GameRule<Integer> MAX_FLOATATER_SIZE;
 
     public static void init() {
         CelestiumSounds.register();

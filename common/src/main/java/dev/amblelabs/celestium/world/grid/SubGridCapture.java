@@ -1,5 +1,6 @@
 package dev.amblelabs.celestium.world.grid;
 
+import dev.amblelabs.celestium.Celestium;
 import dev.amblelabs.celestium.init.CelestiumBlocks;
 import dev.amblelabs.celestium.world.level.block.FloataterBlock;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
@@ -21,6 +22,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.phys.shapes.BooleanOp;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -46,7 +48,7 @@ public record SubGridCapture(SubGridBlocks blocks, LongSet mask, BlockPos minPos
 
         MutableBlockPos pos = new MutableBlockPos();
         MutableBlockPos neighbor = new MutableBlockPos();
-        int sizeLimit = 256; // TODO: level.getGameRules().getInt(GameRules.RULE_FLOATATER_SIZE_LIMIT);
+        int sizeLimit = level.getServer().getGameRules().get(Celestium.MAX_FLOATATER_SIZE);
 
         while (!queue.isEmpty()) {
             long p = queue.dequeueLastLong();

@@ -1,5 +1,7 @@
 package dev.amblelabs.celestium;
 
+import net.minecraft.world.level.gamerules.GameRuleCategory;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 
@@ -18,5 +20,7 @@ public class CelestiumNeoForge {
         // Use NeoForge to bootstrap the Common mod.
         Celestium.LOGGER.info("Hello NeoForge world!");
         Celestium.init();
+
+        Celestium.MAX_FLOATATER_SIZE = GameRules.registerInteger("max_flotator_size", GameRuleCategory.MISC, 256, 1);
     }
 }
