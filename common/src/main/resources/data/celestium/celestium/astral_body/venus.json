@@ -1,0 +1,17 @@
+{
+  "default_color": -37266,
+  "axis": 177.4,
+  "spin_speed": 0.0246893,
+  "orbit": {
+    "speed": 0.487646,
+    "distance_from_center": 1446.0,
+    "phase": 90.0
+  },
+  "size_x": 51,
+  "size_y": 51,
+  "size_z": 51,
+  "atmosphere": {
+    "color": -37266,
+    "layers": 3
+  }
+}

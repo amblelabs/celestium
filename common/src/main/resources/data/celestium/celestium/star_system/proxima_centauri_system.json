@@ -1,0 +1,17 @@
+{
+  "astral_bodies": [
+    "celestium:proxima_centauri",
+    "celestium:proxima_centauri_a",
+    "celestium:proxima_centauri_b"
+  ],
+  "time_code": 0.0,
+  "central_star": "celestium:proxima_centauri",
+  "rot": [
+    45.0,
+    0.0,
+    22.5
+  ],
+  "pos_x": 175000,
+  "pos_y": 300,
+  "pos_z": 125000
+}

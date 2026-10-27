@@ -4,9 +4,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import dev.amblelabs.celestium.init.CelestiumDimensions;
+import dev.amblelabs.celestium.init.CelestiumRegistries;
 import dev.amblelabs.celestium.space.AstralBody;
 import dev.amblelabs.celestium.space.StarSystem;
-import dev.amblelabs.celestium.space.StarSystemRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -14,7 +14,11 @@ import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
@@ -135,9 +139,13 @@ public final class SpaceSkyRenderer {
     }
 
     private static void renderBodies(Frame frame, PoseStack.Pose root) {
-        Vec3 cam = Minecraft.getInstance().gameRenderer.mainCamera().position();
+        Minecraft mc = Minecraft.getInstance();
+        Vec3 cam = mc.gameRenderer.mainCamera().position();
+        if (mc.level == null) return;
 
-        for (StarSystem starSystem : StarSystemRegistry.STAR_SYSTEM_REGISTRY) {
+        Registry<StarSystem> starSystems = mc.level.registryAccess().lookupOrThrow(CelestiumRegistries.STAR_SYSTEM);
+
+        for (StarSystem starSystem : starSystems) {
             PoseStack.Pose systemOrigin = root.copy();
             systemOrigin.translate(
                     (float) (starSystem.posX() - cam.x),
@@ -146,9 +154,9 @@ public final class SpaceSkyRenderer {
             Vector3fc rot = starSystem.rot();
             systemOrigin.rotate(new Quaternionf().rotationXYZ(rot.x(), rot.y(), rot.z()));
 
-            for (AstralBody body : starSystem.astralBodies()) {
-                if (!body.isSatellite()) {
-                    renderBody(frame, systemOrigin, body);
+            for (Holder<AstralBody> body : starSystem.astralBodies()) {
+                if (!body.value().isSatellite()) {
+                    renderBody(frame, systemOrigin, body.value());
                 }
             }
         }
@@ -159,7 +167,11 @@ public final class SpaceSkyRenderer {
         orbit.rotate(Axis.YP.rotationDegrees(body.orbit().angleDegrees(frame.ticks())));
         orbit.translate(body.orbit().distanceFromCenter(), 0, 0);
 
-        for (AstralBody satellite : body.satellites()) {
+        Registry<AstralBody> astralBodies = Minecraft.getInstance().level.registryAccess().lookupOrThrow(CelestiumRegistries.ASTRAL_BODY);
+
+        for (ResourceKey<AstralBody> key : body.satellites()) {
+            AstralBody satellite = astralBodies.getValue(key);
+            if (satellite == null) continue;
             renderBody(frame, orbit, satellite);
         }
 

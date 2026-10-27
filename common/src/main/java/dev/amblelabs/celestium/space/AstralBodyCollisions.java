@@ -1,6 +1,10 @@
 package dev.amblelabs.celestium.space;
 
 import dev.amblelabs.celestium.init.CelestiumDimensions;
+import dev.amblelabs.celestium.init.CelestiumRegistries;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
@@ -17,6 +21,9 @@ public final class AstralBodyCollisions {
     private AstralBodyCollisions() {}
 
     public static void tick(ServerLevel level) {
+        Registry<StarSystem> starSystems = level.registryAccess().lookupOrThrow(CelestiumRegistries.STAR_SYSTEM);
+        Registry<AstralBody> astralBodies = level.registryAccess().lookupOrThrow(CelestiumRegistries.ASTRAL_BODY);
+
         if (!level.dimension().equals(CelestiumDimensions.SPACE_KEY)) return;
 
         ServerLevel overworld = level.getServer().getLevel(Level.OVERWORLD);
@@ -26,15 +33,20 @@ public final class AstralBodyCollisions {
         List<AstralBody> bodies = new ArrayList<>();
         List<Matrix4d> inverses = new ArrayList<>();
 
-        for (StarSystem system : StarSystemEntries.ENTRIES.values()) {
-            for (AstralBody body : system.astralBodies()) {
+        for (StarSystem system : starSystems) {
+            for (Holder<AstralBody> holder : system.astralBodies()) {
+                AstralBody body = holder.value();
                 if (body.isStar()) continue;
-                Matrix4d transform = CelestialMath.bodyTransform(system, body.id(), ticks);
+
+                Identifier id = holder.unwrapKey().orElseThrow().identifier();
+                Matrix4d transform = CelestialMath.bodyTransform(astralBodies, system, id, ticks);
                 if (transform == null) continue;
+
                 bodies.add(body);
                 inverses.add(transform.invert());
             }
         }
+
         if (bodies.isEmpty()) return;
 
         List<Entity> toTeleport = new ArrayList<>();

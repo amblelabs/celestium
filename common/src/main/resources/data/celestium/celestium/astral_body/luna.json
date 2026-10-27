@@ -1,0 +1,14 @@
+{
+  "default_color": -1973791,
+  "axis": 6.68,
+  "spin_speed": 0.0,
+  "orbit": {
+    "speed": 3.7107,
+    "distance_from_center": 120.0,
+    "phase": 112.0
+  },
+  "is_satellite": true,
+  "size_x": 10,
+  "size_y": 10,
+  "size_z": 10
+}

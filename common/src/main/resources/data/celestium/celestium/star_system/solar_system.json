@@ -1,0 +1,25 @@
+{
+  "astral_bodies": [
+    "celestium:sol",
+    "celestium:mercury",
+    "celestium:venus",
+    "celestium:terra",
+    "celestium:luna",
+    "celestium:mars",
+    "celestium:jupiter",
+    "celestium:saturn",
+    "celestium:uranus",
+    "celestium:neptune",
+    "celestium:pluto"
+  ],
+  "time_code": 0.0,
+  "central_star": "celestium:sol",
+  "rot": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "pos_x": 0,
+  "pos_y": 300,
+  "pos_z": 0
+}
