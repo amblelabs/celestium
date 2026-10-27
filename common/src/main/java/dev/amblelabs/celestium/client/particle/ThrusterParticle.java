@@ -11,6 +11,7 @@ import net.minecraft.world.entity.player.Player;
 
 public class ThrusterParticle extends SingleQuadParticle {
     private final SpriteSet sprites;
+    private final float shade;
 
     private ThrusterParticle(final ClientLevel level, final double x, final double y, final double z,
                              final double xa, final double ya, final double za, final SpriteSet sprites) {
@@ -24,6 +25,7 @@ public class ThrusterParticle extends SingleQuadParticle {
         this.yd += ya;
         this.zd += za;
         float col = 1.0F - this.random.nextFloat() * 0.3F;
+        this.shade = 1.0F - this.random.nextFloat() * 0.3F;
         this.rCol = col;
         this.gCol = col;
         this.bCol = col;
@@ -32,6 +34,14 @@ public class ThrusterParticle extends SingleQuadParticle {
         this.lifetime = Math.max((int) (baseLifetime * 2.5F), 1);
         this.hasPhysics = false;
         this.setSpriteFromAge(sprites);
+        this.updateGradient();
+    }
+
+    private void updateGradient() {
+        float t = Mth.clamp((float) this.age / this.lifetime, 0.0F, 1.0F);
+        this.rCol = Mth.lerp(t, 0.20F, 0.60F) * shade;
+        this.gCol = Mth.lerp(t, 0.50F, 0.20F) * shade;
+        this.bCol = Mth.lerp(t, 1.00F, 0.90F) * shade;
     }
 
     @Override
@@ -47,6 +57,8 @@ public class ThrusterParticle extends SingleQuadParticle {
     @Override
     public void tick() {
         super.tick();
+        this.updateGradient();
+
         if (!this.removed) {
             this.setSpriteFromAge(this.sprites);
             Player player = this.level.getNearestPlayer(this.x, this.y, this.z, 2.0D, false);
