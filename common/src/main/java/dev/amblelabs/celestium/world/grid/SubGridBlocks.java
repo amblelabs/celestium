@@ -2,12 +2,14 @@ package dev.amblelabs.celestium.world.grid;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import dev.amblelabs.celestium.Celestium;
 import io.netty.buffer.ByteBuf;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
@@ -15,14 +17,18 @@ import java.util.stream.LongStream;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.BlockPos.MutableBlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.util.SimpleBitStorage;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.material.FluidState;
@@ -51,7 +57,37 @@ public class SubGridBlocks {
             }
 
             List<BlockPos> tickables = new ArrayList<>(SubGridBlocks.TICKABLES_STREAM_CODEC.decode(buffer));
-            return new SubGridBlocks(blockStates, tickables, sizeX, sizeY, sizeZ);
+            Object2ObjectMap<BlockPos, BlockEntity> blockEntities = new Object2ObjectOpenHashMap<>();
+
+            SubGridBlocks subGridBlocks = new SubGridBlocks(blockStates, blockEntities, tickables, sizeX, sizeY, sizeZ);
+
+            int size = buffer.readVarInt();
+            for (int i=0;i<size;i++) {
+                BlockPos blockPos = buffer.readBlockPos();
+                CompoundTag tag = buffer.readNbt();
+                BlockState state = subGridBlocks.getBlockState(blockPos);
+                BlockEntity blockEntity;
+                if ("DUMMY".equals(tag.getStringOr("id", ""))) {
+                    if (state.hasBlockEntity()) {
+                        blockEntity = ((EntityBlock)state.getBlock()).newBlockEntity(blockPos, state);
+                    } else {
+                        blockEntity = null;
+                        Celestium.LOGGER.warn("Tried to load a DUMMY block entity @ {} but found not block entity block {} at location", pos, state);
+                    }
+                } else {
+                    blockEntity = BlockEntity.loadStatic(blockPos, state, tag, buffer.registryAccess());
+                }
+
+                if (blockEntity != null) {
+                    // TODO COME BACK TO
+                    //blockEntity.setLevel(this.level);
+                    this.addAndRegisterBlockEntity(blockEntity);
+                } else {
+                    LOGGER.warn("Tried to load a block entity for block {} but failed at location {}", state, pos);
+                }
+            }
+
+            return subGridBlocks;
         }
 
         public void encode(RegistryFriendlyByteBuf buffer, SubGridBlocks blocks) {
@@ -80,6 +116,44 @@ public class SubGridBlocks {
         }
     };
 
+    public void addAndRegisterBlockEntity(Level level, BlockEntity blockEntity) {
+        this.setBlockEntity(level, blockEntity);
+        if (level instanceof ServerLevel serverLevel) {
+            this.addGameEventListener(blockEntity, serverLevel);
+        }
+
+        this.updateBlockEntityTicker(blockEntity);
+    }
+
+    public void setBlockEntity(Level level, BlockEntity blockEntity) {
+        BlockPos blockPos = blockEntity.getBlockPos();
+        BlockState blockState = this.getBlockState(blockPos);
+        if (!blockState.hasBlockEntity()) {
+            Celestium.LOGGER.warn("Trying to set block entity {} at position {}, but state {} does not allow it", blockEntity, blockPos, blockState);
+        } else {
+            BlockState blockState2 = blockEntity.getBlockState();
+            if (blockState != blockState2) {
+                if (!blockEntity.getType().isValid(blockState)) {
+                    Celestium.LOGGER.warn("Trying to set block entity {} at position {}, but state {} does not allow it", blockEntity, blockPos, blockState);
+                    return;
+                }
+
+                if (blockState.getBlock() != blockState2.getBlock()) {
+                    Celestium.LOGGER.warn("Block state mismatch on block entity {} in position {}, {} != {}, updating", blockEntity, blockPos, blockState, blockState2);
+                }
+
+                blockEntity.setBlockState(blockState);
+            }
+
+            blockEntity.setLevel(level);
+            blockEntity.clearRemoved();
+            BlockEntity blockEntity2 = this.blockEntities.put(blockPos.immutable(), blockEntity);
+            if (blockEntity2 != null && blockEntity2 != blockEntity) {
+                blockEntity2.setRemoved();
+            }
+        }
+    }
+
     public static final Codec<SubGridBlocks> CODEC = SubGridBlocks.Stored.CODEC.xmap(SubGridBlocks::fromStored, SubGridBlocks::toStored);
 
     private static int bitsFor(int paletteSize) {
@@ -87,20 +161,23 @@ public class SubGridBlocks {
     }
 
     final BlockState[] blockStates;
+    final Object2ObjectMap<BlockPos, BlockEntity> blockEntities;
     final List<BlockPos> tickables;
     final int sizeX;
     final int sizeY;
     final int sizeZ;
 
-    SubGridBlocks(BlockState[] blockStates, List<BlockPos> list, int i, int j, int k) {
+    SubGridBlocks(BlockState[] blockStates, Object2ObjectMap<BlockPos, BlockEntity> blockEntities, List<BlockPos> list, int i, int j, int k) {
         this.blockStates = blockStates;
+        this.blockEntities = blockEntities;
         this.tickables = list;
         this.sizeX = i;
         this.sizeY = j;
         this.sizeZ = k;
     }
 
-    public SubGridBlocks(int i, int j, int k) {
+    public SubGridBlocks(Object2ObjectMap<BlockPos, BlockEntity> blockEntities, int i, int j, int k) {
+        this.blockEntities = blockEntities;
         this.blockStates = new BlockState[i * j * k];
         Arrays.fill(this.blockStates, EMPTY_BLOCK_STATE);
         this.tickables = new ArrayList<>();
