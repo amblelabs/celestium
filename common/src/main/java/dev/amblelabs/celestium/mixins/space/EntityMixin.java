@@ -1,10 +1,16 @@
 package dev.amblelabs.celestium.mixins.space;
 
 import dev.amblelabs.celestium.init.CelestiumDimensions;
+import dev.amblelabs.celestium.space.AstralBodyEntries;
+import dev.amblelabs.celestium.space.CelestialMath;
+import dev.amblelabs.celestium.space.StarSystemEntries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -37,9 +43,16 @@ public class EntityMixin {
         if (spaceLevel == null) return;
 
         if (entity.level() == overworldLevel && entity.getY() >= 700) {
-            entity.teleportTo(spaceLevel, 0, 128, 0, Set.of(), 0, 0, false);
+            if (entity.isPassenger()) return;
+
+            Vector3d exit = CelestialMath.aboveBody(StarSystemEntries.SOLAR_SYSTEM, AstralBodyEntries.TERRA,
+                    spaceLevel.getGameTime(), entity.getBbHeight() + 2.0);
+            if (exit == null) return;
+
+            entity.teleport(new TeleportTransition(spaceLevel, new Vec3(exit.x, exit.y, exit.z), entity.getDeltaMovement(),
+                    entity.getYRot(), entity.getXRot(), Set.of(), TeleportTransition.DO_NOTHING));
         } else if(entity.level() == spaceLevel && entity.getY() <= 0) {
-            entity.teleportTo(overworldLevel, 0, 256, 0, Set.of(), 0, 0, false);
+            entity.teleportTo(overworldLevel, 0, 690, 0, Set.of(), 0, 0, false);
         }
     }
 

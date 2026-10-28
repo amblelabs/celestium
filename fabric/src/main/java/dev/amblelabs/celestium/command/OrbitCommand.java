@@ -18,7 +18,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
-import org.joml.Matrix4d;
 import org.joml.Vector3d;
 
 import java.util.Set;
@@ -58,16 +57,10 @@ public final class OrbitCommand {
             for (AstralBody body : system.astralBodies()) {
                 if (!body.id().equals(id)) continue;
 
-                Matrix4d transform = CelestialMath.bodyTransform(system, id, ticks);
-                if (transform == null) continue;
+                Vector3d pos = CelestialMath.aboveBody(system, body, ticks, entity.getBbHeight() + CLEARANCE);
+                if (pos == null) continue;
 
-                Vector3d center = transform.getTranslation(new Vector3d());
-                double topExtent = Math.abs(transform.m01()) * body.sizeX() / 2.0
-                        + Math.abs(transform.m11()) * body.sizeY() / 2.0
-                        + Math.abs(transform.m21()) * body.sizeZ() / 2.0;
-                double y = center.y + topExtent + entity.getBbHeight() + CLEARANCE;
-
-                entity.teleportTo(space, center.x, y, center.z, Set.of(), entity.getYRot(), 90.0F, false);
+                entity.teleportTo(space, pos.x, pos.y, pos.z, Set.of(), entity.getYRot(), 90.0F, false);
                 context.getSource().sendSuccess(() -> Component.literal("Teleported to orbit of " + id), true);
                 return 1;
             }

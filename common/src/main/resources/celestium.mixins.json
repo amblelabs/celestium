@@ -17,6 +17,7 @@
     "space.ServerLevelMixin"
   ],
   "client": [
+    "client.SeamlessSpaceTransitionMixin",
     "client.SpaceSkyRendererMixin",
     "grid.client.ClientLevelEntityCallbacksMixin",
     "grid.client.ClientLevelMixin"

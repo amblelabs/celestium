@@ -2,6 +2,7 @@ package dev.amblelabs.celestium.space;
 
 import net.minecraft.resources.Identifier;
 import org.joml.Matrix4d;
+import org.joml.Vector3d;
 import org.joml.Vector3fc;
 
 import java.util.List;
@@ -17,6 +18,17 @@ public final class CelestialMath {
 
         return find(system.astralBodies().stream().filter(b ->
                 !b.isSatellite()).toList(), origin, id, ticks);
+    }
+
+    public static Vector3d aboveBody(StarSystem system, AstralBody body, double ticks, double clearance) {
+        Matrix4d transform = bodyTransform(system, body.id(), ticks);
+        if (transform == null) return null;
+
+        Vector3d center = transform.getTranslation(new Vector3d());
+        double topExtent = Math.abs(transform.m01()) * body.sizeX() / 2.0
+                + Math.abs(transform.m11()) * body.sizeY() / 2.0
+                + Math.abs(transform.m21()) * body.sizeZ() / 2.0;
+        return center.add(0, topExtent + clearance, 0);
     }
 
     private static Matrix4d find(List<AstralBody> bodies, Matrix4d parent, Identifier id, double ticks) {
