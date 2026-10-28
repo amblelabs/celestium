@@ -167,6 +167,9 @@ public final class SpaceSkyRenderer {
             Profiler.get().push("celestium_planet_surfaces");
             renderBodies(new Frame(buffer, ticks, Pass.SOLID, maxRenderDistance, scenes, camera), pose);
             Profiler.get().pop();
+            Profiler.get().push("celestium_ring_debris");
+            RingDebris.render(buffer, pose, scenes, camera, ticks);
+            Profiler.get().pop();
         });
         out.submitCustomGeometry(poses, CelestiumRenderTypes.SKY_GLOW, (pose, buffer) -> {
             Profiler.get().push("celestium_planet_glow");
