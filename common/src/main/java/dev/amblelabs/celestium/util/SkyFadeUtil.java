@@ -8,15 +8,15 @@ import org.joml.Vector3fc;
 public final class SkyFadeUtil {
     private SkyFadeUtil() {}
 
-    public static float space(double y, float start, float end) {
-        float t = Mth.clamp((float) ((y - start) / (end - start)), 0f, 1f);
+    public static float space(double y) {
+        float t = Mth.clamp((float) ((y - 300) / (750 - 300)), 0f, 1f);
         return t * t * (3f - 2f * t);
     }
 
     public static float current() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.gameRenderer == null) return 0.0F;
-        return space(mc.gameRenderer.mainCamera().position().y, 300, 750);
+        return space(mc.gameRenderer.mainCamera().position().y);
     }
 
     public static Vector3fc darken(Vector3fc color, float fade) {

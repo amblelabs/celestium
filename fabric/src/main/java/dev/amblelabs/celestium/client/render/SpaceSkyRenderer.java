@@ -8,6 +8,7 @@ import dev.amblelabs.celestium.init.CelestiumDimensions;
 import dev.amblelabs.celestium.space.AstralBody;
 import dev.amblelabs.celestium.space.StarSystem;
 import dev.amblelabs.celestium.space.StarSystemRegistry;
+import dev.amblelabs.celestium.util.SkyFadeUtil;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -81,7 +82,7 @@ public final class SpaceSkyRenderer {
 
         boolean isSpace = level.dimension().equals(CelestiumDimensions.SPACE_KEY);
 
-        float starAlpha = isSpace ? 1.0F : space(mc.gameRenderer.mainCamera().position().y);
+        float starAlpha = isSpace ? 1.0F : SkyFadeUtil.space(mc.gameRenderer.mainCamera().position().y);
         if (starAlpha <= 0.01F) return;
 
         float blocks = Math.max(48, mc.options.getEffectiveRenderDistance() * 16);
@@ -282,17 +283,6 @@ public final class SpaceSkyRenderer {
                     body.sizeZ() * scale,
                     state == null ? 1 : 10, false, shader);
         }
-    }
-
-    public static float current() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.gameRenderer == null) return 0.0F;
-        return space(mc.gameRenderer.mainCamera().position().y);
-    }
-
-    public static float space(double cameraY) {
-        float t = Mth.clamp((float) ((cameraY - 200) / (700 - 200)), 0f, 1f);
-        return t * t * (3f - 2f * t);
     }
 
     private static int mix(int from, int to, float t) {
