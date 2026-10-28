@@ -32,7 +32,8 @@ public class CelestiumBlocks {
     public static final Holder<Block> FLOATATER = block("floatater",
             properties -> new FloataterBlock(properties
                     .strength(0.5F)
-                    .sound(SoundType.STONE)
+                    .sound(SoundType.IRON)
+                    .noOcclusion()
             ));
 
     private static <T extends Block> Holder<T> block(String name, Function<BlockBehaviour.Properties, T> function) {

@@ -29,7 +29,7 @@ public class GridBlockRenderState extends MovingBlockRenderState {
 
    @Override
    public int getBrightness(@NonNull LightLayer layer, @NonNull BlockPos pos) {
-      return this.mesh.worldBrightness(layer, pos);
+      return this.mesh.worldBrightness(this, layer, pos);
    }
 
    @Override

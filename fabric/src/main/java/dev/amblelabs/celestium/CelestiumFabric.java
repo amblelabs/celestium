@@ -2,14 +2,12 @@ package dev.amblelabs.celestium;
 
 import dev.amblelabs.celestium.init.CelestiumEntityTypeIds;
 import dev.amblelabs.celestium.init.CelestiumEntityTypes;
-import dev.amblelabs.celestium.init.CelestiumRegistries;
 import dev.amblelabs.celestium.network.protocol.game.GridWaitPayload;
 import dev.amblelabs.celestium.network.protocol.game.SubGridPayload;
-import dev.amblelabs.celestium.space.AstralBody;
-import dev.amblelabs.celestium.space.StarSystem;
+import dev.amblelabs.celestium.space.AstralBodyRegistry;
+import dev.amblelabs.celestium.space.StarSystemRegistry;
 import dev.amblelabs.celestium.world.level.entitiy.PocketStarEntity;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.event.registry.DynamicRegistries;
 import net.fabricmc.fabric.api.gamerule.v1.GameRuleBuilder;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
@@ -37,6 +35,8 @@ public class CelestiumFabric implements ModInitializer {
 
         DynamicRegistries.registerSynced(CelestiumRegistries.ASTRAL_BODY, AstralBody.CODEC);
         DynamicRegistries.registerSynced(CelestiumRegistries.STAR_SYSTEM, StarSystem.CODEC);
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> OrbitCommand.register(dispatcher));
     }
 
     private static <T extends Entity> EntityType<T> register(ResourceKey<EntityType<?>> key, EntityType<T> entity) {
