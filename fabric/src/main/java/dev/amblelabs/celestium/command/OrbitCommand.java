@@ -6,14 +6,17 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import dev.amblelabs.celestium.init.CelestiumDimensions;
+import dev.amblelabs.celestium.init.CelestiumRegistries;
 import dev.amblelabs.celestium.space.AstralBody;
 import dev.amblelabs.celestium.space.CelestialMath;
 import dev.amblelabs.celestium.space.StarSystem;
-import dev.amblelabs.celestium.space.StarSystemEntries;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.IdentifierArgument;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -39,9 +42,9 @@ public final class OrbitCommand {
                 .then(Commands.literal("orbit")
                         .then(Commands.argument("body", IdentifierArgument.id())
                                 .suggests((context, builder) -> SharedSuggestionProvider.suggestResource(
-                                        StarSystemEntries.ENTRIES.values().stream()
-                                                .flatMap(system -> system.astralBodies().stream())
-                                                .map(AstralBody::id), builder))
+                                        context.getSource().registryAccess()
+                                                .lookupOrThrow(CelestiumRegistries.ASTRAL_BODY)
+                                                .keySet(), builder))
                                 .executes(OrbitCommand::teleport))));
     }
 
@@ -52,12 +55,16 @@ public final class OrbitCommand {
         ServerLevel space = context.getSource().getServer().getLevel(CelestiumDimensions.SPACE_KEY);
         if (space == null) throw NO_SPACE.create();
 
-        double ticks = space.getGameTime();
-        for (StarSystem system : StarSystemEntries.ENTRIES.values()) {
-            for (AstralBody body : system.astralBodies()) {
-                if (!body.id().equals(id)) continue;
+        RegistryAccess access = context.getSource().registryAccess();
+        Registry<AstralBody> bodies = access.lookupOrThrow(CelestiumRegistries.ASTRAL_BODY);
+        Registry<StarSystem> systems = access.lookupOrThrow(CelestiumRegistries.STAR_SYSTEM);
 
-                Vector3d pos = CelestialMath.aboveBody(system, body, ticks, entity.getBbHeight() + CLEARANCE);
+        double ticks = space.getGameTime();
+        for (StarSystem system : systems) {
+            for (Holder<AstralBody> body : system.astralBodies()) {
+                if (!body.is(id)) continue;
+
+                Vector3d pos = CelestialMath.aboveBody(bodies, system, id, ticks, entity.getBbHeight() + CLEARANCE);
                 if (pos == null) continue;
 
                 entity.teleportTo(space, pos.x, pos.y, pos.z, Set.of(), entity.getYRot(), 90.0F, false);

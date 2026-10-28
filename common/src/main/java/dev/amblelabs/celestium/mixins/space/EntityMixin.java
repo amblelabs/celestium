@@ -1,10 +1,14 @@
 package dev.amblelabs.celestium.mixins.space;
 
+import dev.amblelabs.celestium.Celestium;
 import dev.amblelabs.celestium.init.CelestiumDimensions;
-import dev.amblelabs.celestium.space.AstralBodyEntries;
+import dev.amblelabs.celestium.init.CelestiumRegistries;
+import dev.amblelabs.celestium.space.AstralBody;
 import dev.amblelabs.celestium.space.CelestialMath;
-import dev.amblelabs.celestium.space.StarSystemEntries;
+import dev.amblelabs.celestium.space.StarSystem;
 import dev.amblelabs.celestium.world.grid.SubGridCollisions;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -51,8 +55,15 @@ public class EntityMixin {
         if (entity.level() == overworldLevel && entity.getY() >= 700) {
             if (entity.isPassenger()) return;
 
-            Vector3d exit = CelestialMath.aboveBody(StarSystemEntries.SOLAR_SYSTEM, AstralBodyEntries.TERRA,
-                    spaceLevel.getGameTime(), entity.getBbHeight() + 2.0);
+            RegistryAccess access = server.registryAccess();
+            Registry<AstralBody> bodies = access.lookupOrThrow(CelestiumRegistries.ASTRAL_BODY);
+            Registry<StarSystem> systems = access.lookupOrThrow(CelestiumRegistries.STAR_SYSTEM);
+
+            StarSystem solar = systems.getValue(Celestium.id("solar_system"));
+            if (solar == null) return;
+
+            Vector3d exit = CelestialMath.aboveBody(bodies, solar, Celestium.id("solar_system/terra"), spaceLevel.getGameTime(), entity.getBbHeight() + 2.0);
+
             if (exit == null) return;
 
             entity.teleport(new TeleportTransition(spaceLevel, new Vec3(exit.x, exit.y, exit.z), entity.getDeltaMovement(),

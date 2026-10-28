@@ -3,7 +3,10 @@ package dev.amblelabs.celestium.client.starlight;
 import dev.amblelabs.celestium.space.AstralBody;
 import dev.amblelabs.celestium.space.Atmosphere;
 import dev.amblelabs.celestium.space.StarSystem;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.ARGB;
 import org.joml.Matrix4d;
 import org.joml.Vector3d;
@@ -29,8 +32,12 @@ public final class Starlight {
     }
 
     public record Scene(List<Light> lights, List<Body> occluders, Map<Identifier, Body> bodies, Map<Body, List<Body>> casters) {
-        public Body body(AstralBody body) {
-            return bodies.get(body.id());
+        public Body body(Identifier id) {
+            return bodies.get(id);
+        }
+
+        public Body body(Holder<AstralBody> holder) {
+            return bodies.get(holder.unwrapKey().orElseThrow().identifier());
         }
 
         private List<Body> castersOf(Body self) {
@@ -61,36 +68,43 @@ public final class Starlight {
         }
     }
 
-    private static final Map<Identifier, Scene> scenes = new HashMap<>();
+    private static final Map<StarSystem, Scene> scenes = new IdentityHashMap<>();
     private static double scenesTicks = Double.NaN;
 
     private Starlight() {}
 
-    public static Scene scene(StarSystem system, double ticks) {
+    public static Scene scene(Registry<AstralBody> registry, StarSystem system, double ticks) {
         if (ticks != scenesTicks) {
             scenes.clear();
             scenesTicks = ticks;
         }
-        return scenes.computeIfAbsent(system.id(), id -> build(system, ticks));
+        return scenes.computeIfAbsent(system, s -> build(registry, s, ticks));
     }
 
-    private static Scene build(StarSystem system, double ticks) {
+    private static Scene build(Registry<AstralBody> registry, StarSystem system, double ticks) {
         Vector3fc rot = system.rot();
         Matrix4d origin = new Matrix4d().translation(system.posX(), system.posY(), system.posZ())
                 .rotateXYZ(Math.toRadians(rot.x()), Math.toRadians(rot.y()), Math.toRadians(rot.z()));
 
         Scene scene = new Scene(new ArrayList<>(), new ArrayList<>(), new HashMap<>(), new IdentityHashMap<>());
-        for (AstralBody body : system.astralBodies()) {
-            if (!body.isSatellite()) collect(scene, origin, body, ticks);
+        for (Holder<AstralBody> holder : system.astralBodies()) {
+            AstralBody body = holder.value();
+            if (!body.isSatellite()) {
+                collect(registry, scene, origin, holder.unwrapKey().orElseThrow().identifier(), body, ticks);
+            }
         }
         return scene;
     }
 
-    private static void collect(Scene scene, Matrix4d parent, AstralBody body, double ticks) {
+    private static void collect(Registry<AstralBody> registry, Scene scene, Matrix4d parent, Identifier id, AstralBody body, double ticks) {
         Matrix4d orbit = new Matrix4d(parent).rotateY(Math.toRadians(body.orbit().angleDegrees(ticks)))
                 .translate(body.orbit().distanceFromCenter(), 0, 0);
-        for (AstralBody satellite : body.satellites()) {
-            collect(scene, orbit, satellite, ticks);
+
+        for (ResourceKey<AstralBody> key : body.satellites()) {
+            AstralBody satellite = registry.getValue(key);
+            if (satellite != null) {
+                collect(registry, scene, orbit, key.identifier(), satellite, ticks);
+            }
         }
 
         Matrix4d self = orbit.rotateX(Math.toRadians(body.axis())).rotateY(Math.toRadians(body.spinDegrees(ticks)));
@@ -100,7 +114,7 @@ public final class Starlight {
         if (body.isStar()) {
             int c = mix(body.defaultColor(), 0xFFFFFF, 0.6F);
             scene.lights().add(new Light(center, radius, ARGB.red(c) / 255F * 1.9F, ARGB.green(c) / 255F * 1.9F, ARGB.blue(c) / 255F * 1.9F));
-            scene.bodies().put(body.id(), new Body(body, self, center, radius, null));
+            scene.bodies().put(id, new Body(body, self, center, radius, null));
             return;
         }
 
@@ -108,7 +122,7 @@ public final class Starlight {
         float[] scatter = atmosphere == null ? null : scatterCoefficients(mix(atmosphere.color(), 0x7FB8FF, 0.5F));
         Body state = new Body(body, self, center, radius * 1.15, scatter);
         scene.occluders().add(state);
-        scene.bodies().put(body.id(), state);
+        scene.bodies().put(id, state);
     }
 
     public static int surface(Scene scene, Body self, Vector3dc pos, Vector3dc faceNormal, Vector3dc sphereNormal, int albedo) {

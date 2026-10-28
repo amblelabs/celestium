@@ -1,0 +1,20 @@
+{
+  "default_color": -16733441,
+  "axis": 23.44,
+  "spin_speed": 6.01624,
+  "orbit": {
+    "speed": 0.3,
+    "distance_from_center": 2000.0,
+    "phase": 120.0
+  },
+  "satellites": [
+    "celestium:solar_system/satellites/terra/luna"
+  ],
+  "size_x": 50,
+  "size_y": 50,
+  "size_z": 50,
+  "atmosphere": {
+    "color": -16733441,
+    "layers": 3
+  }
+}

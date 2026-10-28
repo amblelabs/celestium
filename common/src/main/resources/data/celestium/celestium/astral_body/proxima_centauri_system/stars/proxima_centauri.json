@@ -1,0 +1,14 @@
+{
+  "is_star": true,
+  "default_color": -1,
+  "axis": 0.0,
+  "spin_speed": 0.0722892,
+  "orbit": {
+    "speed": 0.0,
+    "distance_from_center": 0.0,
+    "phase": 45.0
+  },
+  "size_x": 200,
+  "size_y": 200,
+  "size_z": 200
+}
