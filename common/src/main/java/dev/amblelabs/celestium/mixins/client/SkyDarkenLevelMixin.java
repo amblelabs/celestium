@@ -5,6 +5,7 @@ import dev.amblelabs.celestium.util.SkyFadeUtil;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.attribute.EnvironmentAttributeSystem;
 import net.minecraft.world.attribute.EnvironmentAttributes;
+import org.joml.Vector3f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,7 +18,10 @@ public abstract class SkyDarkenLevelMixin {
     private void celestium$spaceFade(EnvironmentAttributeSystem.Builder builder, CallbackInfoReturnable<EnvironmentAttributeSystem.Builder> cir) {
         // Couldn't find a way to do it without mixins, is there better way probably?
         ClientLevel self = (ClientLevel) (Object) this;
-        if (self.dimension() == CelestiumDimensions.SPACE_KEY) return;
+        if (self.dimension() == CelestiumDimensions.SPACE_KEY) {
+            builder.addConstantLayer(EnvironmentAttributes.SKY_COLOR, (color) -> new Vector3f(0f, 0f, 0f));
+            builder.addConstantLayer(EnvironmentAttributes.FOG_COLOR, (color) -> new Vector3f(0f, 0f, 0f));
+        }
 
         builder.addTimeBasedLayer(EnvironmentAttributes.SKY_COLOR,
                 (color, tick) -> SkyFadeUtil.darken(color, SkyFadeUtil.current()));
