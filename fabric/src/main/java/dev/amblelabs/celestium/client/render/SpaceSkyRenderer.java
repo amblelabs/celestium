@@ -4,9 +4,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.amblelabs.celestium.client.starlight.Starlight;
 import dev.amblelabs.celestium.init.CelestiumDimensions;
+import dev.amblelabs.celestium.init.CelestiumRegistries;
 import dev.amblelabs.celestium.space.AstralBody;
 import dev.amblelabs.celestium.space.StarSystem;
-import dev.amblelabs.celestium.space.StarSystemRegistry;
 import dev.amblelabs.celestium.util.SkyFadeUtil;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.Minecraft;
@@ -14,6 +14,8 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
@@ -97,7 +99,7 @@ public final class SpaceSkyRenderer {
 
         renderStars(poses, out, blocks * 3.2F, starAlpha, starSeconds);
         if (isSpace) {
-            renderSystem(poses, out, ticks, blocks * MAX_RENDER_FRACTION);
+            renderSystem(level.registryAccess(), poses, out, ticks, blocks * MAX_RENDER_FRACTION);
         }
     }
 
@@ -106,7 +108,7 @@ public final class SpaceSkyRenderer {
     private enum Pass { GLOW, SOLID }
 
     private record Frame(VertexConsumer buffer, double ticks, Pass pass, float maxRenderDistance,
-                         Map<Identifier, Starlight.Scene> scenes, Vector3d camera) {}
+                         List<Starlight.Scene> scenes, Vector3d camera) {}
 
     private static List<Star> generateStars() {
         Random random = new Random(0x2814_0000_0666_0001L + 10 * 0x9E3779B97F4A7C15L);
@@ -144,12 +146,15 @@ public final class SpaceSkyRenderer {
         });
     }
 
-    private static void renderSystem(PoseStack poses, SubmitNodeCollector out, double ticks, float maxRenderDistance) {
+    private static void renderSystem(RegistryAccess access, PoseStack poses, SubmitNodeCollector out, double ticks, float maxRenderDistance) {
+        Registry<AstralBody> bodies = access.lookupOrThrow(CelestiumRegistries.ASTRAL_BODY);
+        Registry<StarSystem> systems = access.lookupOrThrow(CelestiumRegistries.STAR_SYSTEM);
+
         ProfilerFiller profiler = Profiler.get();
         profiler.push("celestium_starlight_scenes");
-        Map<Identifier, Starlight.Scene> scenes = new HashMap<>();
-        for (StarSystem starSystem : StarSystemRegistry.STAR_SYSTEM_REGISTRY) {
-            scenes.put(starSystem.id(), Starlight.scene(starSystem, ticks));
+        List<Starlight.Scene> scenes = new ArrayList<>();
+        for (StarSystem system : systems) {
+            scenes.add(Starlight.scene(bodies, system, ticks));
         }
         profiler.pop();
         Vec3 cam = Minecraft.getInstance().gameRenderer.mainCamera().position();
@@ -168,15 +173,14 @@ public final class SpaceSkyRenderer {
     }
 
     private static void renderBodies(Frame frame, PoseStack.Pose root) {
-        for (StarSystem starSystem : StarSystemRegistry.STAR_SYSTEM_REGISTRY) {
-            Starlight.Scene scene = frame.scenes().get(starSystem.id());
-            for (Starlight.Body state : scene.bodies().values()) {
-                renderBody(frame, scene, root, state);
+        for (Starlight.Scene scene : frame.scenes()) {
+            for (Map.Entry<Identifier, Starlight.Body> entry : scene.bodies().entrySet()) {
+                renderBody(frame, scene, root, entry.getKey(), entry.getValue());
             }
         }
     }
 
-    private static void renderBody(Frame frame, Starlight.Scene scene, PoseStack.Pose root, Starlight.Body state) {
+    private static void renderBody(Frame frame, Starlight.Scene scene, PoseStack.Pose root, Identifier id, Starlight.Body state) {
         AstralBody body = state.body();
         Matrix4d transform = state.transform();
         Vector3d cam = frame.camera();
@@ -202,12 +206,12 @@ public final class SpaceSkyRenderer {
                 if (body.isStar()) {
                     renderStarBody(frame, self, body);
                 } else if (body.atmosphere() != null) {
-                    renderAtmosphere(frame, scene, self, body, detail);
+                    renderAtmosphere(frame, scene, state, id, self, detail);
                 }
             }
             case SOLID -> {
                 if (!body.isStar()) {
-                    renderSurface(frame, scene, self, body, detail);
+                    renderSurface(frame, scene, state, id, self, detail);
                 }
             }
         }
@@ -234,10 +238,10 @@ public final class SpaceSkyRenderer {
         }
     }
 
-    private static void renderSurface(Frame frame, Starlight.Scene scene, PoseStack.Pose self, AstralBody body, int detail) {
-        Starlight.Body state = scene.body(body);
-        Lit lit = LIT.computeIfAbsent(body.id(), id -> new Lit());
-        long bucket = refreshBucket(body, frame.ticks());
+    private static void renderSurface(Frame frame, Starlight.Scene scene, Starlight.Body state, Identifier id, PoseStack.Pose self, int detail) {
+        AstralBody body = state.body();
+        Lit lit = LIT.computeIfAbsent(id, k -> new Lit());
+        long bucket = refreshBucket(id, frame.ticks());
         if (lit.surface == null || lit.surfaceDetail != detail || lit.surfaceBucket != bucket) {
             Matrix4d transform = state.transform();
             float hx = body.sizeX() / 2F, hy = body.sizeY() / 2F, hz = body.sizeZ() / 2F;
@@ -260,11 +264,11 @@ public final class SpaceSkyRenderer {
         emitCube(frame.buffer(), self, body.sizeX(), body.sizeY(), body.sizeZ(), detail, true, lit.surface);
     }
 
-    private static void renderAtmosphere(Frame frame, Starlight.Scene scene, PoseStack.Pose self, AstralBody body, int detail) {
-        Starlight.Body state = scene.body(body);
+    private static void renderAtmosphere(Frame frame, Starlight.Scene scene, Starlight.Body state, Identifier id, PoseStack.Pose self, int detail) {
+        AstralBody body = state.body();
         int layers = body.atmosphere().layers();
-        Lit lit = LIT.computeIfAbsent(body.id(), id -> new Lit());
-        long bucket = refreshBucket(body, frame.ticks());
+        Lit lit = LIT.computeIfAbsent(id, k -> new Lit());
+        long bucket = refreshBucket(id, frame.ticks());
         Vector3d view = new Vector3d(frame.camera()).sub(state.center()).normalize();
 
         if (lit.atmosphere == null || lit.atmosphereDetail != detail || lit.atmosphereBucket != bucket || lit.view.dot(view) < 0.9998) {
@@ -290,8 +294,8 @@ public final class SpaceSkyRenderer {
         }
     }
 
-    private static long refreshBucket(AstralBody body, double ticks) {
-        return (long) Math.floor((ticks + Math.floorMod(body.id().hashCode(), LIGHTING_REFRESH_TICKS)) / LIGHTING_REFRESH_TICKS);
+    private static long refreshBucket(Identifier id, double ticks) {
+        return (long) Math.floor((ticks + Math.floorMod(id.hashCode(), LIGHTING_REFRESH_TICKS)) / LIGHTING_REFRESH_TICKS);
     }
 
     private static int mix(int from, int to, float t) {

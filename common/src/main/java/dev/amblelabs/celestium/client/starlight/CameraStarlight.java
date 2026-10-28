@@ -3,16 +3,15 @@ package dev.amblelabs.celestium.client.starlight;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.vertex.QuadInstance;
 import dev.amblelabs.celestium.init.CelestiumDimensions;
+import dev.amblelabs.celestium.init.CelestiumRegistries;
 import dev.amblelabs.celestium.mixins.client.starlight.LightingAccessor;
+import dev.amblelabs.celestium.space.AstralBody;
 import dev.amblelabs.celestium.space.StarSystem;
-import dev.amblelabs.celestium.space.StarSystemEntries;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.resources.model.geometry.BakedQuad;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.SectionPos;
+import net.minecraft.core.*;
 import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.util.profiling.Profiler;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -186,10 +185,14 @@ public final class CameraStarlight {
     }
 
     private static Starlight.Scene nearestScene(Vector3d pos, double ticks) {
+        RegistryAccess access = Minecraft.getInstance().level.registryAccess();
+        Registry<StarSystem> systems = access.lookupOrThrow(CelestiumRegistries.STAR_SYSTEM);
+        Registry<AstralBody> bodies = access.lookupOrThrow(CelestiumRegistries.ASTRAL_BODY);
+
         Starlight.Scene nearest = null;
         double best = Double.POSITIVE_INFINITY;
-        for (StarSystem system : StarSystemEntries.ENTRIES.values()) {
-            Starlight.Scene scene = Starlight.scene(system, ticks);
+        for (StarSystem system : systems) {
+            Starlight.Scene scene = Starlight.scene(bodies, system, ticks);
             for (Starlight.Light light : scene.lights()) {
                 double distance = light.position().distanceSquared(pos);
                 if (distance < best) {
