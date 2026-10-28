@@ -18,7 +18,8 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
-import net.minecraft.world.level.Level;
+import net.minecraft.util.profiling.Profiler;
+import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4d;
 import org.joml.Quaternionf;
@@ -141,17 +142,26 @@ public final class SpaceSkyRenderer {
     }
 
     private static void renderSystem(PoseStack poses, SubmitNodeCollector out, double ticks, float maxRenderDistance) {
+        ProfilerFiller profiler = Profiler.get();
+        profiler.push("celestium_starlight_scenes");
         Map<Identifier, Starlight.Scene> scenes = new HashMap<>();
         for (StarSystem starSystem : StarSystemRegistry.STAR_SYSTEM_REGISTRY) {
             scenes.put(starSystem.id(), Starlight.scene(starSystem, ticks));
         }
+        profiler.pop();
         Vec3 cam = Minecraft.getInstance().gameRenderer.mainCamera().position();
         Vector3d camera = new Vector3d(cam.x, cam.y, cam.z);
 
-        out.submitCustomGeometry(poses, PLANET_SURFACE, (pose, buffer) ->
-                renderBodies(new Frame(buffer, ticks, Pass.SOLID, maxRenderDistance, scenes, camera), pose));
-        out.submitCustomGeometry(poses, CelestiumRenderTypes.SKY_GLOW, (pose, buffer) ->
-                renderBodies(new Frame(buffer, ticks, Pass.GLOW, maxRenderDistance, scenes, camera), pose));
+        out.submitCustomGeometry(poses, PLANET_SURFACE, (pose, buffer) -> {
+            Profiler.get().push("celestium_planet_surfaces");
+            renderBodies(new Frame(buffer, ticks, Pass.SOLID, maxRenderDistance, scenes, camera), pose);
+            Profiler.get().pop();
+        });
+        out.submitCustomGeometry(poses, CelestiumRenderTypes.SKY_GLOW, (pose, buffer) -> {
+            Profiler.get().push("celestium_planet_glow");
+            renderBodies(new Frame(buffer, ticks, Pass.GLOW, maxRenderDistance, scenes, camera), pose);
+            Profiler.get().pop();
+        });
     }
 
     private static void renderBodies(Frame frame, PoseStack.Pose root) {

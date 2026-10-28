@@ -7,6 +7,7 @@ import dev.amblelabs.celestium.init.CelestiumDimensions;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.BlockAndLightGetter;
 import net.minecraft.world.level.CardinalLighting;
 import net.minecraft.world.level.LightLayer;
 import org.joml.Vector3fc;
@@ -17,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ClientLevel.class)
-public class StarlightClientLevelMixin {
+public abstract class StarlightClientLevelMixin implements BlockAndLightGetter {
 
     @Unique
     private final Long2IntOpenHashMap celestium$shadowedSky = new Long2IntOpenHashMap();
@@ -31,6 +32,7 @@ public class StarlightClientLevelMixin {
         }
     }
 
+    @Override
     public int getBrightness(LightLayer layer, BlockPos pos) {
         ClientLevel self = (ClientLevel) (Object) this;
         int value = self.getLightEngine().getLayerListener(layer).getLightValue(pos);
@@ -48,7 +50,8 @@ public class StarlightClientLevelMixin {
                 celestium$shadowFrame = CameraStarlight.frame();
                 celestium$shadowedSky.clear();
             }
-            if (celestium$shadowedSky.containsKey(key)) return celestium$shadowedSky.get(key);
+            int hit = celestium$shadowedSky.getOrDefault(key, -1);
+            if (hit >= 0) return hit;
         }
         int shaded = StarShadows.skyLight(self, pos, value, toward,
                 Integer.MIN_VALUE, self.getMinY(), Integer.MIN_VALUE, Integer.MAX_VALUE, self.getMaxY(), Integer.MAX_VALUE);

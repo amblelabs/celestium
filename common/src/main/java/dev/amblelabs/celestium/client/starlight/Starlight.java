@@ -12,6 +12,7 @@ import org.joml.Vector3fc;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -27,20 +28,58 @@ public final class Starlight {
         }
     }
 
-    public record Scene(List<Light> lights, List<Body> occluders, Map<Identifier, Body> bodies) {
+    public record Scene(List<Light> lights, List<Body> occluders, Map<Identifier, Body> bodies, Map<Body, List<Body>> casters) {
         public Body body(AstralBody body) {
             return bodies.get(body.id());
         }
+
+        private List<Body> castersOf(Body self) {
+            return self == null ? occluders : casters.computeIfAbsent(self, this::findCasters);
+        }
+
+        private List<Body> findCasters(Body self) {
+            List<Body> found = new ArrayList<>();
+            Vector3d axis = new Vector3d();
+            Vector3d offset = new Vector3d();
+            for (Body occluder : occluders) {
+                if (occluder == self) continue;
+                for (Light light : lights) {
+                    self.center().sub(light.position(), axis);
+                    double length = axis.length();
+                    occluder.center().sub(light.position(), offset);
+                    double along = offset.dot(axis) / length;
+                    if (along <= 0.0 || along >= length) continue;
+                    double across = Math.sqrt(Math.max(0.0, offset.lengthSquared() - along * along));
+                    double penumbra = light.radius() * 0.3 * (1.0 + (length - along) / along);
+                    if (across <= occluder.radius() + self.radius() * 2.2 + penumbra) {
+                        found.add(occluder);
+                        break;
+                    }
+                }
+            }
+            return found;
+        }
     }
+
+    private static final Map<Identifier, Scene> scenes = new HashMap<>();
+    private static double scenesTicks = Double.NaN;
 
     private Starlight() {}
 
     public static Scene scene(StarSystem system, double ticks) {
+        if (ticks != scenesTicks) {
+            scenes.clear();
+            scenesTicks = ticks;
+        }
+        return scenes.computeIfAbsent(system.id(), id -> build(system, ticks));
+    }
+
+    private static Scene build(StarSystem system, double ticks) {
         Vector3fc rot = system.rot();
         Matrix4d origin = new Matrix4d().translation(system.posX(), system.posY(), system.posZ())
                 .rotateXYZ(Math.toRadians(rot.x()), Math.toRadians(rot.y()), Math.toRadians(rot.z()));
 
-        Scene scene = new Scene(new ArrayList<>(), new ArrayList<>(), new HashMap<>());
+        Scene scene = new Scene(new ArrayList<>(), new ArrayList<>(), new HashMap<>(), new IdentityHashMap<>());
         for (AstralBody body : system.astralBodies()) {
             if (!body.isSatellite()) collect(scene, origin, body, ticks);
         }
@@ -161,8 +200,7 @@ public final class Starlight {
         double lightDist = Math.sqrt(dx * dx + dy * dy + dz * dz);
         double starAngle = Math.asin(Math.min(1.0, light.radius() * 0.3 / lightDist));
 
-        for (Body occluder : scene.occluders()) {
-            if (occluder == self) continue;
+        for (Body occluder : scene.castersOf(self)) {
             double ox = occluder.center().x() - pos.x(), oy = occluder.center().y() - pos.y(), oz = occluder.center().z() - pos.z();
             double occluderDist = Math.sqrt(ox * ox + oy * oy + oz * oz);
             if (occluderDist >= lightDist || occluderDist <= occluder.radius()) continue;

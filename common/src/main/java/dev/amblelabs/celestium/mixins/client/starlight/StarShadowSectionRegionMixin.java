@@ -7,6 +7,7 @@ import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.chunk.RenderSectionRegion;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.BlockAndLightGetter;
 import net.minecraft.world.level.LightLayer;
 import org.joml.Vector3fc;
 import org.spongepowered.asm.mixin.Final;
@@ -15,7 +16,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 
 @Mixin(RenderSectionRegion.class)
-public abstract class StarShadowSectionRegionMixin {
+public abstract class StarShadowSectionRegionMixin implements BlockAndLightGetter {
 
     @Shadow @Final private int minSectionX;
     @Shadow @Final private int minSectionY;
@@ -23,8 +24,10 @@ public abstract class StarShadowSectionRegionMixin {
     @Shadow @Final private ClientLevel level;
 
     @Unique
-    private final Long2IntOpenHashMap celestium$shadowedSky = new Long2IntOpenHashMap();
+    private Long2IntOpenHashMap celestium$shadowedSky;
 
+    @Unique
+    @Override
     public int getBrightness(LightLayer layer, BlockPos pos) {
         RenderSectionRegion self = (RenderSectionRegion) (Object) this;
         int value = self.getLightEngine().getLayerListener(layer).getLightValue(pos);
@@ -32,8 +35,10 @@ public abstract class StarShadowSectionRegionMixin {
         Vector3fc toward = CameraStarlight.shadowDirection();
         if (toward == null) return value;
 
+        if (celestium$shadowedSky == null) celestium$shadowedSky = new Long2IntOpenHashMap();
         long key = pos.asLong();
-        if (celestium$shadowedSky.containsKey(key)) return celestium$shadowedSky.get(key);
+        int cached = celestium$shadowedSky.getOrDefault(key, -1);
+        if (cached >= 0) return cached;
         int minX = minSectionX << 4, minY = minSectionY << 4, minZ = minSectionZ << 4;
         int shaded = StarShadows.skyLight(self, pos, value, toward,
                 minX, minY, minZ, minX + 47, minY + 47, minZ + 47);

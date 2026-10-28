@@ -8,6 +8,7 @@ import dev.amblelabs.celestium.world.grid.SubGridBlocks;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.util.profiling.Profiler;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.Blocks;
@@ -70,8 +71,10 @@ public final class GridMesh {
          }
       }
 
+      Profiler.get().push("celestium_grid_mesh");
       GridMesh mesh = new GridMesh(grid, level);
       grid.setRenderCache(mesh);
+      Profiler.get().pop();
       return mesh;
    }
 
@@ -129,7 +132,9 @@ public final class GridMesh {
 
    private int blockLightAt(int x, int y, int z) {
       if (!this.blockLightBuilt) {
+         Profiler.get().push("celestium_grid_light");
          this.blockLight = this.floodBlockLight();
+         Profiler.get().pop();
          this.blockLightBuilt = true;
       }
       if (this.blockLight == null) return 0;
