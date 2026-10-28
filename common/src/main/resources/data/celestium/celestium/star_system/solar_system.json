@@ -4,7 +4,7 @@
     "celestium:solar_system/mercury",
     "celestium:solar_system/venus",
     "celestium:solar_system/terra",
-    "celestium:solar_system/satellites/earth/luna",
+    "celestium:solar_system/satellites/terra/luna",
     "celestium:solar_system/mars",
     "celestium:solar_system/jupiter",
     "celestium:solar_system/saturn",
