@@ -3,7 +3,7 @@ package dev.amblelabs.celestium.client.renderers;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.amblelabs.celestium.Celestium;
 import dev.amblelabs.celestium.client.model.PocketStarEntityModel;
-import dev.amblelabs.celestium.world.level.entitiy.PocketStarEntity;
+import dev.amblelabs.celestium.world.level.entity.PocketStarEntity;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.MobRenderer;

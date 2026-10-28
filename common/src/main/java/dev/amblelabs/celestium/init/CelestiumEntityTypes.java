@@ -1,6 +1,6 @@
 package dev.amblelabs.celestium.init;
 
-import dev.amblelabs.celestium.world.level.entitiy.PocketStarEntity;
+import dev.amblelabs.celestium.world.level.entity.PocketStarEntity;
 import dev.amblelabs.celestium.world.grid.GridCarrier;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;

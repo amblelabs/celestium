@@ -7,7 +7,7 @@ import dev.amblelabs.celestium.network.protocol.game.GridWaitPayload;
 import dev.amblelabs.celestium.network.protocol.game.SubGridPayload;
 import dev.amblelabs.celestium.space.AstralBodyRegistry;
 import dev.amblelabs.celestium.space.StarSystemRegistry;
-import dev.amblelabs.celestium.world.level.entitiy.PocketStarEntity;
+import dev.amblelabs.celestium.world.level.entity.PocketStarEntity;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.gamerule.v1.GameRuleBuilder;

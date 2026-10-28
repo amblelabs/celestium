@@ -1,4 +1,4 @@
-package dev.amblelabs.celestium.world.level.entitiy;
+package dev.amblelabs.celestium.world.level.entity;
 
 import dev.amblelabs.celestium.init.CelestiumEntityTypes;
 import net.minecraft.world.entity.EntityType;
