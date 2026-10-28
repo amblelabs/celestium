@@ -115,11 +115,6 @@ public abstract class EntityMixin implements GridRider {
       }
    }
 
-   @Inject(method = "getGravity", at = @At("HEAD"), cancellable = true)
-   private void hoverWhileWaitingForGrid(CallbackInfoReturnable<Double> cir) {
-      if (this.pendingGrid != null) cir.setReturnValue(0d);
-   }
-
    @Inject(method = "saveWithoutId", at = @At("TAIL"))
    private void saveAttachedGrid(ValueOutput output, CallbackInfo ci) {
       SubGrid grid = this.attachedGrid != null ? this.attachedGrid : SubGridCollisions.findGridBelow(this.asEntity());

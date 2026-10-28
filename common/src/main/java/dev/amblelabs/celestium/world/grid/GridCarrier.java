@@ -79,6 +79,15 @@ public class GridCarrier extends Entity {
 
     private void tickServer() {
         float speed = this.getMovementSpeed();
+
+        if (this.exceedsBuildHeight()) {
+            this.placeInTicks = 0;
+            if (this.movementCollider != null) {
+                this.tickMovement(this.movementCollider, this.getMovementDirection(), speed);
+            }
+            return;
+        }
+
         if (this.placeInTicks == 0 && speed == 0)
             this.placeInTicks = 2;
 
@@ -97,11 +106,11 @@ public class GridCarrier extends Entity {
     @Override
     public InteractionResult interact(Player player, InteractionHand hand, Vec3 location) {
         if (hand == InteractionHand.MAIN_HAND && player.getMainHandItem().isEmpty()) {
+            if (this.exceedsBuildHeight()) return InteractionResult.PASS;
             this.clearMovement();
             this.placeInTicks = 5;
             return InteractionResult.SUCCESS;
         }
-
         return super.interact(player, hand, location);
     }
 
@@ -129,6 +138,11 @@ public class GridCarrier extends Entity {
         }
 
         this.setPos(to);
+    }
+
+    private boolean exceedsBuildHeight() {
+        int top = this.blockPosition().getY() + this.grid.getBlocks().sizeY() - 1;
+        return top > this.level().getMaxY();
     }
 
     private BlockPos getCollidingPos(Vec3 position, Direction direction) {
