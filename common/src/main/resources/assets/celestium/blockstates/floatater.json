@@ -2,29 +2,31 @@
   "variants": {
     "facing=north": {
       "model": "celestium:block/floatater",
-      "x": 90
+      "x": 0,
+      "y": 180
     },
     "facing=east": {
       "model": "celestium:block/floatater",
-      "x": 90,
-      "y": 90
+      "x": 0,
+      "y": 270
     },
     "facing=south": {
       "model": "celestium:block/floatater",
-      "x": 90,
-      "y": 180
+      "x": 0,
+      "y": 0
     },
     "facing=west": {
       "model": "celestium:block/floatater",
-      "x": 90,
-      "y": 270
+      "x": 0,
+      "y": 90
     },
     "facing=up": {
-      "model": "celestium:block/floatater"
+      "model": "celestium:block/floatater",
+      "x": 90
     },
     "facing=down": {
       "model": "celestium:block/floatater",
-      "x": 180
+      "x": 270
     }
   }
 }
