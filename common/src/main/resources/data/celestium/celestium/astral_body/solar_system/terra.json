@@ -8,7 +8,7 @@
     "phase": 120.0
   },
   "satellites": [
-    "celestium:luna"
+    "celestium:solar_system/satellites/earth/luna"
   ],
   "size_x": 50,
   "size_y": 50,
