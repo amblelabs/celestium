@@ -2,11 +2,10 @@ plugins {
     kotlin("jvm")
     `multiloader-loader`
     id("net.neoforged.moddev") version "2.0.148"
+    id("versioning")
 //    id("com.google.devtools.ksp") version "2.3.12" // TODO(template): review
 //    id("dev.kikugie.fletching-table.neoforge") version "0.1.0-alpha.13" // TODO(template): review
 }
-
-apply(from = rootProject.file("versioning.gradle"))
 
 neoForge {
     enable {
