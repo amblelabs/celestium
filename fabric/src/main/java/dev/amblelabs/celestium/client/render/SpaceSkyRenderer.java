@@ -2,7 +2,6 @@ package dev.amblelabs.celestium.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Axis;
 import dev.amblelabs.celestium.client.starlight.Starlight;
 import dev.amblelabs.celestium.init.CelestiumDimensions;
 import dev.amblelabs.celestium.space.AstralBody;
@@ -22,10 +21,10 @@ import net.minecraft.util.profiling.Profiler;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4d;
+import org.joml.Quaterniond;
 import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
-import org.joml.Vector3fc;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,7 +43,11 @@ public final class SpaceSkyRenderer {
 
     private static final float MAX_RENDER_FRACTION = 0.8F;
 
-    private static final int ATMOSPHERE_TINT = 0x7FB8FF;
+    // TODO: make config option
+    private static final int LIGHTING_REFRESH_TICKS = 20;
+
+    private static final Map<Identifier, Lit> LIT = new HashMap<>();
+
     private static final float ATMOSPHERE_INNER_SCALE = 1.06F;
     private static final float ATMOSPHERE_OUTER_SCALE = 1.4F;
     private static final float ATMOSPHERE_INNER_ALPHA = 0.3F;
@@ -165,41 +168,27 @@ public final class SpaceSkyRenderer {
     }
 
     private static void renderBodies(Frame frame, PoseStack.Pose root) {
-        Vector3d cam = frame.camera();
-
         for (StarSystem starSystem : StarSystemRegistry.STAR_SYSTEM_REGISTRY) {
             Starlight.Scene scene = frame.scenes().get(starSystem.id());
-            PoseStack.Pose systemOrigin = root.copy();
-            systemOrigin.translate(
-                    (float) (starSystem.posX() - cam.x),
-                    (float) (starSystem.posY() - cam.y),
-                    (float) (starSystem.posZ() - cam.z));
-            Vector3fc rot = starSystem.rot();
-            systemOrigin.rotate(new Quaternionf().rotationXYZ(
-                    (float) Math.toRadians(rot.x()), (float) Math.toRadians(rot.y()), (float) Math.toRadians(rot.z())));
-
-            for (AstralBody body : starSystem.astralBodies()) {
-                if (!body.isSatellite()) {
-                    renderBody(frame, scene, systemOrigin, body);
-                }
+            for (Starlight.Body state : scene.bodies().values()) {
+                renderBody(frame, scene, root, state);
             }
         }
     }
 
-    private static void renderBody(Frame frame, Starlight.Scene scene, PoseStack.Pose parent, AstralBody body) {
-        PoseStack.Pose orbit = parent.copy();
-        orbit.rotate(Axis.YP.rotationDegrees(body.orbit().angleDegrees(frame.ticks())));
-        orbit.translate(body.orbit().distanceFromCenter(), 0, 0);
-
-        for (AstralBody satellite : body.satellites()) {
-            renderBody(frame, scene, orbit, satellite);
-        }
-
-        PoseStack.Pose self = orbit.copy();
-        self.rotateDegrees(Axis.XP, body.axis());
-        self.rotateDegrees(Axis.YP, body.spinDegrees(frame.ticks()));
-
+    private static void renderBody(Frame frame, Starlight.Scene scene, PoseStack.Pose root, Starlight.Body state) {
+        AstralBody body = state.body();
+        Matrix4d transform = state.transform();
+        Vector3d cam = frame.camera();
         float size = Math.max(body.sizeX(), Math.max(body.sizeY(), body.sizeZ()));
+        double angular = size / Math.max(1.0, cam.distance(transform.m30(), transform.m31(), transform.m32()));
+        if (!body.isStar() && angular < 0.0005) return;
+        int detail = angular > 0.2 ? 12 : angular > 0.05 ? 8 : angular > 0.01 ? 4 : 1;
+
+        PoseStack.Pose self = root.copy();
+        self.translate((float) (transform.m30() - cam.x), (float) (transform.m31() - cam.y), (float) (transform.m32() - cam.z));
+        self.rotate(new Quaternionf(transform.getNormalizedRotation(new Quaterniond())));
+
         float shell = body.isStar()
                 ? STAR_GLOW_OUTER_SCALE * (1.0F + STAR_PULSE_AMOUNT)
                 : body.atmosphere() != null ? ATMOSPHERE_OUTER_SCALE : 1.0F;
@@ -213,12 +202,12 @@ public final class SpaceSkyRenderer {
                 if (body.isStar()) {
                     renderStarBody(frame, self, body);
                 } else if (body.atmosphere() != null) {
-                    renderAtmosphere(frame, scene, self, body);
+                    renderAtmosphere(frame, scene, self, body, detail);
                 }
             }
             case SOLID -> {
                 if (!body.isStar()) {
-                    renderSurface(frame, scene, self, body);
+                    renderSurface(frame, scene, self, body, detail);
                 }
             }
         }
@@ -245,54 +234,64 @@ public final class SpaceSkyRenderer {
         }
     }
 
-    private static void renderSurface(Frame frame, Starlight.Scene scene, PoseStack.Pose self, AstralBody body) {
-        Starlight.Body state = scene == null ? null : scene.body(body);
-        int albedo = body.defaultColor();
-        if (state == null) {
-            shadedCube(frame.buffer(), self, body.sizeX(), body.sizeY(), body.sizeZ(), 1, true,
-                    (face, x, y, z) -> ARGB.opaque(albedo));
-            return;
+    private static void renderSurface(Frame frame, Starlight.Scene scene, PoseStack.Pose self, AstralBody body, int detail) {
+        Starlight.Body state = scene.body(body);
+        Lit lit = LIT.computeIfAbsent(body.id(), id -> new Lit());
+        long bucket = refreshBucket(body, frame.ticks());
+        if (lit.surface == null || lit.surfaceDetail != detail || lit.surfaceBucket != bucket) {
+            Matrix4d transform = state.transform();
+            float hx = body.sizeX() / 2F, hy = body.sizeY() / 2F, hz = body.sizeZ() / 2F;
+            Vector3d[] faceNormals = new Vector3d[FACES.length];
+            for (int f = 0; f < FACES.length; f++) {
+                float[] n = FACE_NORMALS[f];
+                faceNormals[f] = transform.transformDirection(new Vector3d(n[0], n[1], n[2])).normalize();
+            }
+            Vector3d world = new Vector3d();
+            Vector3d sphereNormal = new Vector3d();
+            lit.surface = shadeCube(body.sizeX(), body.sizeY(), body.sizeZ(), detail,
+                    (face, x, y, z) -> Starlight.surface(scene, state,
+                            transform.transformPosition(world.set(x, y, z)),
+                            faceNormals[face],
+                            transform.transformDirection(sphereNormal.set(x / hx, y / hy, z / hz)).normalize(),
+                            body.defaultColor()));
+            lit.surfaceDetail = detail;
+            lit.surfaceBucket = bucket;
         }
-
-        Matrix4d transform = state.transform();
-        float hx = body.sizeX() / 2F, hy = body.sizeY() / 2F, hz = body.sizeZ() / 2F;
-        Vector3d[] faceNormals = new Vector3d[FACES.length];
-        for (int f = 0; f < FACES.length; f++) {
-            float[] n = FACE_NORMALS[f];
-            faceNormals[f] = transform.transformDirection(new Vector3d(n[0], n[1], n[2])).normalize();
-        }
-        Vector3d world = new Vector3d();
-        Vector3d sphereNormal = new Vector3d();
-
-        shadedCube(frame.buffer(), self, body.sizeX(), body.sizeY(), body.sizeZ(), 12, true,
-                (face, x, y, z) -> Starlight.surface(scene, state,
-                        transform.transformPosition(world.set(x, y, z)),
-                        faceNormals[face],
-                        transform.transformDirection(sphereNormal.set(x / hx, y / hy, z / hz)).normalize(),
-                        albedo));
+        emitCube(frame.buffer(), self, body.sizeX(), body.sizeY(), body.sizeZ(), detail, true, lit.surface);
     }
 
-    private static void renderAtmosphere(Frame frame, Starlight.Scene scene, PoseStack.Pose self, AstralBody body) {
-        Starlight.Body state = scene == null ? null : scene.body(body);
-        int tint = mix(body.atmosphere().color(), ATMOSPHERE_TINT, 0.5F);
+    private static void renderAtmosphere(Frame frame, Starlight.Scene scene, PoseStack.Pose self, AstralBody body, int detail) {
+        Starlight.Body state = scene.body(body);
         int layers = body.atmosphere().layers();
-        double radius = Math.max(body.sizeX(), Math.max(body.sizeY(), body.sizeZ())) / 2.0 * ATMOSPHERE_OUTER_SCALE;
-        Vector3d world = new Vector3d();
+        Lit lit = LIT.computeIfAbsent(body.id(), id -> new Lit());
+        long bucket = refreshBucket(body, frame.ticks());
+        Vector3d view = new Vector3d(frame.camera()).sub(state.center()).normalize();
+
+        if (lit.atmosphere == null || lit.atmosphereDetail != detail || lit.atmosphereBucket != bucket || lit.view.dot(view) < 0.9998) {
+            double radius = Math.max(body.sizeX(), Math.max(body.sizeY(), body.sizeZ())) / 2.0 * ATMOSPHERE_OUTER_SCALE;
+            Vector3d world = new Vector3d();
+            lit.atmosphere = new int[layers][];
+            for (int i = 0; i < layers; i++) {
+                float t = layers == 1 ? 0.0F : (float) i / (layers - 1);
+                float scale = Mth.lerp(t, ATMOSPHERE_INNER_SCALE, ATMOSPHERE_OUTER_SCALE);
+                float alpha = Mth.lerp(t, ATMOSPHERE_INNER_ALPHA, ATMOSPHERE_OUTER_ALPHA);
+                lit.atmosphere[i] = shadeCube(body.sizeX() * scale, body.sizeY() * scale, body.sizeZ() * scale, detail,
+                        (face, x, y, z) -> Starlight.atmosphere(scene, state,
+                                state.transform().transformPosition(world.set(x, y, z)), frame.camera(), radius, alpha));
+            }
+            lit.atmosphereDetail = detail;
+            lit.atmosphereBucket = bucket;
+            lit.view.set(view);
+        }
 
         for (int i = 0; i < layers; i++) {
-            float t = layers == 1 ? 0.0F : (float) i / (layers - 1);
-            float scale = Mth.lerp(t, ATMOSPHERE_INNER_SCALE, ATMOSPHERE_OUTER_SCALE);
-            float alpha = Mth.lerp(t, ATMOSPHERE_INNER_ALPHA, ATMOSPHERE_OUTER_ALPHA);
-            GridShader shader = state == null
-                    ? (face, x, y, z) -> ARGB.color(Math.round(255 * alpha), tint)
-                    : (face, x, y, z) -> Starlight.atmosphere(scene, state,
-                            state.transform().transformPosition(world.set(x, y, z)), frame.camera(), radius, alpha);
-            shadedCube(frame.buffer(), self,
-                    body.sizeX() * scale,
-                    body.sizeY() * scale,
-                    body.sizeZ() * scale,
-                    state == null ? 1 : 10, false, shader);
+            float scale = Mth.lerp(layers == 1 ? 0.0F : (float) i / (layers - 1), ATMOSPHERE_INNER_SCALE, ATMOSPHERE_OUTER_SCALE);
+            emitCube(frame.buffer(), self, body.sizeX() * scale, body.sizeY() * scale, body.sizeZ() * scale, detail, false, lit.atmosphere[i]);
         }
+    }
+
+    private static long refreshBucket(AstralBody body, double ticks) {
+        return (long) Math.floor((ticks + Math.floorMod(body.id().hashCode(), LIGHTING_REFRESH_TICKS)) / LIGHTING_REFRESH_TICKS);
     }
 
     private static int mix(int from, int to, float t) {
@@ -326,33 +325,43 @@ public final class SpaceSkyRenderer {
         int shade(int face, float x, float y, float z);
     }
 
-    private static void shadedCube(VertexConsumer buffer, PoseStack.Pose pose, float sizeX, float sizeY, float sizeZ,
-                                   int n, boolean textured, GridShader shader) {
+    private static final class Lit {
+        int[] surface;
+        int surfaceDetail;
+        long surfaceBucket;
+        int[][] atmosphere;
+        int atmosphereDetail;
+        long atmosphereBucket;
+        final Vector3d view = new Vector3d();
+    }
+
+    private static int[] shadeCube(float sizeX, float sizeY, float sizeZ, int n, GridShader shader) {
         float hx = sizeX / 2F, hy = sizeY / 2F, hz = sizeZ / 2F;
         int row = n + 1;
-        float[] xs = new float[row * row], ys = new float[row * row], zs = new float[row * row];
-        int[] colors = new int[row * row];
-
+        int[] colors = new int[FACES.length * row * row];
         for (int f = 0; f < FACES.length; f++) {
             int[] face = FACES[f];
             for (int j = 0; j <= n; j++) {
                 for (int i = 0; i <= n; i++) {
-                    int k = j * row + i;
                     float s = (float) i / n, t = (float) j / n;
-                    xs[k] = facePoint(face, 1, hx, s, t);
-                    ys[k] = facePoint(face, 2, hy, s, t);
-                    zs[k] = facePoint(face, 4, hz, s, t);
-                    colors[k] = shader.shade(f, xs[k], ys[k], zs[k]);
+                    colors[(f * row + j) * row + i] = shader.shade(f,
+                            facePoint(face, 1, hx, s, t), facePoint(face, 2, hy, s, t), facePoint(face, 4, hz, s, t));
                 }
             }
+        }
+        return colors;
+    }
 
-            float[] normal = FACE_NORMALS[f];
+    private static void emitCube(VertexConsumer buffer, PoseStack.Pose pose, float sizeX, float sizeY, float sizeZ,
+                                 int n, boolean textured, int[] colors) {
+        float hx = sizeX / 2F, hy = sizeY / 2F, hz = sizeZ / 2F;
+        for (int f = 0; f < FACES.length; f++) {
             for (int j = 0; j < n; j++) {
                 for (int i = 0; i < n; i++) {
-                    gridVertex(buffer, pose, xs, ys, zs, colors, row, i, j, n, textured, normal);
-                    gridVertex(buffer, pose, xs, ys, zs, colors, row, i + 1, j, n, textured, normal);
-                    gridVertex(buffer, pose, xs, ys, zs, colors, row, i + 1, j + 1, n, textured, normal);
-                    gridVertex(buffer, pose, xs, ys, zs, colors, row, i, j + 1, n, textured, normal);
+                    gridVertex(buffer, pose, f, hx, hy, hz, colors, i, j, n, textured);
+                    gridVertex(buffer, pose, f, hx, hy, hz, colors, i + 1, j, n, textured);
+                    gridVertex(buffer, pose, f, hx, hy, hz, colors, i + 1, j + 1, n, textured);
+                    gridVertex(buffer, pose, f, hx, hy, hz, colors, i, j + 1, n, textured);
                 }
             }
         }
@@ -366,12 +375,15 @@ public final class SpaceSkyRenderer {
         return Mth.lerp(t, Mth.lerp(s, c0, c1), Mth.lerp(s, c3, c2));
     }
 
-    private static void gridVertex(VertexConsumer buffer, PoseStack.Pose pose, float[] xs, float[] ys, float[] zs, int[] colors,
-                                   int row, int i, int j, int n, boolean textured, float[] normal) {
-        int k = j * row + i;
-        VertexConsumer vertex = buffer.addVertex(pose, xs[k], ys[k], zs[k]).setColor(colors[k]);
+    private static void gridVertex(VertexConsumer buffer, PoseStack.Pose pose, int f, float hx, float hy, float hz,
+                                   int[] colors, int i, int j, int n, boolean textured) {
+        int[] face = FACES[f];
+        float s = (float) i / n, t = (float) j / n;
+        VertexConsumer vertex = buffer.addVertex(pose, facePoint(face, 1, hx, s, t), facePoint(face, 2, hy, s, t), facePoint(face, 4, hz, s, t))
+                .setColor(colors[(f * (n + 1) + j) * (n + 1) + i]);
         if (textured) {
-            vertex.setUv((float) i / n, (float) j / n)
+            float[] normal = FACE_NORMALS[f];
+            vertex.setUv(s, t)
                     .setOverlay(OverlayTexture.NO_OVERLAY)
                     .setLight(0xF000F0)
                     .setNormal(pose, normal[0], normal[1], normal[2]);

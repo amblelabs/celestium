@@ -27,7 +27,7 @@ public class StarSystemEntries {
 
     public static final StarSystem PROXIMA_CENTAURI_SYSTEM = add(new StarSystem(Celestium.id("proxima_centauri_system"),
             List.of(AstralBodyEntries.PROXIMA_CENTAURI, AstralBodyEntries.PROXIMA_CENTAURI_A, AstralBodyEntries.PROXIMA_CENTAURI_B),
-            0, AstralBodyEntries.PROXIMA_CENTAURI, new Vector3f(45f, 0, 22.5f), 175000, 300, 125000));
+            0, AstralBodyEntries.PROXIMA_CENTAURI, new Vector3f(45f, 0, 22.5f), 3500000, 300, 2500000));
 
     private static StarSystem add(StarSystem system) {
         ENTRIES.put(system.id(), system);

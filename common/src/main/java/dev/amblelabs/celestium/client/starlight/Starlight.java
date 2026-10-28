@@ -50,7 +50,7 @@ public final class Starlight {
                     double along = offset.dot(axis) / length;
                     if (along <= 0.0 || along >= length) continue;
                     double across = Math.sqrt(Math.max(0.0, offset.lengthSquared() - along * along));
-                    double penumbra = light.radius() * 0.3 * (1.0 + (length - along) / along);
+                    double penumbra = light.radius() * 0.033 * (1.0 + (length - along) / along);
                     if (across <= occluder.radius() + self.radius() * 2.2 + penumbra) {
                         found.add(occluder);
                         break;
@@ -100,6 +100,7 @@ public final class Starlight {
         if (body.isStar()) {
             int c = mix(body.defaultColor(), 0xFFFFFF, 0.6F);
             scene.lights().add(new Light(center, radius, ARGB.red(c) / 255F * 1.9F, ARGB.green(c) / 255F * 1.9F, ARGB.blue(c) / 255F * 1.9F));
+            scene.bodies().put(body.id(), new Body(body, self, center, radius, null));
             return;
         }
 
@@ -198,7 +199,7 @@ public final class Starlight {
         out[0] = out[1] = out[2] = 1.0F;
         double dx = light.position().x() - pos.x(), dy = light.position().y() - pos.y(), dz = light.position().z() - pos.z();
         double lightDist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        double starAngle = Math.asin(Math.min(1.0, light.radius() * 0.3 / lightDist));
+        double starAngle = Math.asin(Math.min(1.0, light.radius() * 0.033 / lightDist));
 
         for (Body occluder : scene.castersOf(self)) {
             double ox = occluder.center().x() - pos.x(), oy = occluder.center().y() - pos.y(), oz = occluder.center().z() - pos.z();
