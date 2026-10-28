@@ -147,8 +147,9 @@ public final class SpaceSkyRenderer {
     }
 
     private static void renderSystem(RegistryAccess access, PoseStack poses, SubmitNodeCollector out, double ticks, float maxRenderDistance) {
-        Registry<AstralBody> bodies = access.lookupOrThrow(CelestiumRegistries.ASTRAL_BODY);
-        Registry<StarSystem> systems = access.lookupOrThrow(CelestiumRegistries.STAR_SYSTEM);
+        Registry<AstralBody> bodies = access.lookup(CelestiumRegistries.ASTRAL_BODY).orElse(null);
+        Registry<StarSystem> systems = access.lookup(CelestiumRegistries.STAR_SYSTEM).orElse(null);
+        if (bodies == null || systems == null) return;
 
         ProfilerFiller profiler = Profiler.get();
         profiler.push("celestium_starlight_scenes");
