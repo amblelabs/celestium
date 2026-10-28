@@ -17,6 +17,7 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -73,7 +74,12 @@ public final class SpaceSkyRenderer {
     public static void render(LevelRenderContext context) {
         Minecraft mc = Minecraft.getInstance();
         ClientLevel level = mc.level;
-        if (level == null || !level.dimension().equals(CelestiumDimensions.SPACE_KEY)) return;
+        if (level == null) return;
+
+        boolean isSpace = level.dimension().equals(CelestiumDimensions.SPACE_KEY);
+
+        float starAlpha = isSpace ? 1.0F : space(mc.gameRenderer.mainCamera().position().y);
+        if (starAlpha <= 0.01F) return;
 
         float blocks = Math.max(48, mc.options.getEffectiveRenderDistance() * 16);
         double ticks = level.getGameTime() + mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
@@ -81,8 +87,10 @@ public final class SpaceSkyRenderer {
         PoseStack poses = context.poseStack();
         SubmitNodeCollector out = context.submitNodeCollector();
 
-        renderStars(poses, out, blocks * 3.2F, 1.0F, starSeconds);
-        renderSystem(poses, out, ticks, blocks * MAX_RENDER_FRACTION);
+        renderStars(poses, out, blocks * 3.2F, starAlpha, starSeconds);
+        if (isSpace) {
+            renderSystem(poses, out, ticks, blocks * MAX_RENDER_FRACTION);
+        }
     }
 
     public record Star(float yaw, float pitch, float size, int color) {}
@@ -227,6 +235,17 @@ public final class SpaceSkyRenderer {
                     body.sizeZ() * scale,
                     ARGB.color(Math.round(255 * alpha), tint));
         }
+    }
+
+    public static float current() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.gameRenderer == null) return 0.0F;
+        return space(mc.gameRenderer.mainCamera().position().y);
+    }
+
+    public static float space(double cameraY) {
+        float t = Mth.clamp((float) ((cameraY - 200) / (700 - 200)), 0f, 1f);
+        return t * t * (3f - 2f * t);
     }
 
     private static int mix(int from, int to, float t) {

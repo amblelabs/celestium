@@ -18,6 +18,7 @@
   ],
   "client": [
     "client.SeamlessSpaceTransitionMixin",
+    "client.SkyDarkenLevelMixin",
     "client.SpaceSkyRendererMixin",
     "grid.client.ClientLevelEntityCallbacksMixin",
     "grid.client.ClientLevelMixin"
