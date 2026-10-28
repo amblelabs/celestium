@@ -21,13 +21,13 @@ public final class AstralBodyCollisions {
     private AstralBodyCollisions() {}
 
     public static void tick(ServerLevel level) {
-        Registry<StarSystem> starSystems = level.registryAccess().lookupOrThrow(CelestiumRegistries.STAR_SYSTEM);
-        Registry<AstralBody> astralBodies = level.registryAccess().lookupOrThrow(CelestiumRegistries.ASTRAL_BODY);
-
         if (!level.dimension().equals(CelestiumDimensions.SPACE_KEY)) return;
 
         ServerLevel overworld = level.getServer().getLevel(Level.OVERWORLD);
         if (overworld == null) return;
+
+        Registry<StarSystem> starSystems = level.registryAccess().lookupOrThrow(CelestiumRegistries.STAR_SYSTEM);
+        Registry<AstralBody> astralBodies = level.registryAccess().lookupOrThrow(CelestiumRegistries.ASTRAL_BODY);
 
         double ticks = level.getGameTime();
         List<AstralBody> bodies = new ArrayList<>();
