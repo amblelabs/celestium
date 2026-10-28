@@ -24,8 +24,8 @@
     },
     "minecraft:audio/background_music": {
       "default": {
-        "max_delay": 24000,
-        "min_delay": 2320,
+        "max_delay": 240000,
+        "min_delay": 23200,
         "replace_current_music": true,
         "sound": "celestium:music.alone"
       }
