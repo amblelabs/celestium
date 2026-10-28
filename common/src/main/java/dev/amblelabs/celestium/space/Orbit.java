@@ -8,7 +8,7 @@ import net.minecraft.network.codec.StreamCodec;
 
 public record Orbit(float speed, float distanceFromCenter, float phase) {
 
-    public static final float SPEED_SCALE = 0.001F;
+    public static final float SPEED_SCALE = 0.001f;
 
     public static final Codec<Orbit> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.FLOAT.fieldOf("speed").forGetter(Orbit::speed),

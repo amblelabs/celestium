@@ -20,6 +20,13 @@
     "client.SeamlessSpaceTransitionMixin",
     "client.SkyDarkenLevelMixin",
     "client.SpaceSkyRendererMixin",
+    "client.starlight.LightingAccessor",
+    "client.starlight.StarShadowSectionRegionMixin",
+    "client.starlight.StarlightBlockQuadMixin",
+    "client.starlight.StarlightClientLevelMixin",
+    "client.starlight.StarlightGameRendererMixin",
+    "client.starlight.StarlightLightmapMixin",
+    "client.starlight.StarlightModelPartMixin",
     "grid.client.ClientLevelEntityCallbacksMixin",
     "grid.client.ClientLevelMixin"
   ],
