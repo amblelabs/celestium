@@ -144,7 +144,8 @@ public final class SpaceSkyRenderer {
                     (float) (starSystem.posY() - cam.y),
                     (float) (starSystem.posZ() - cam.z));
             Vector3fc rot = starSystem.rot();
-            systemOrigin.rotate(new Quaternionf().rotationXYZ(rot.x(), rot.y(), rot.z()));
+            systemOrigin.rotate(new Quaternionf().rotationXYZ(
+                    (float) Math.toRadians(rot.x()), (float) Math.toRadians(rot.y()), (float) Math.toRadians(rot.z())));
 
             for (AstralBody body : starSystem.astralBodies()) {
                 if (!body.isSatellite()) {
@@ -164,8 +165,8 @@ public final class SpaceSkyRenderer {
         }
 
         PoseStack.Pose self = orbit.copy();
-        self.rotate(Axis.XP, body.axis());
-        self.rotate(Axis.YP, body.spinDegrees(frame.ticks()));
+        self.rotateDegrees(Axis.XP, body.axis());
+        self.rotateDegrees(Axis.YP, body.spinDegrees(frame.ticks()));
 
         float size = Math.max(body.sizeX(), Math.max(body.sizeY(), body.sizeZ()));
         float shell = body.isStar()

@@ -13,7 +13,7 @@ public final class CelestialMath {
     public static Matrix4d bodyTransform(StarSystem system, Identifier id, double ticks) {
         Vector3fc rot = system.rot();
         Matrix4d origin = new Matrix4d().translation(system.posX(), system.posY(), system.posZ())
-                .rotateXYZ(rot.x(), rot.y(), rot.z());
+                .rotateXYZ(Math.toRadians(rot.x()), Math.toRadians(rot.y()), Math.toRadians(rot.z()));
 
         return find(system.astralBodies().stream().filter(b ->
                 !b.isSatellite()).toList(), origin, id, ticks);
