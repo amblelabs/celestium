@@ -4,14 +4,17 @@ import dev.amblelabs.celestium.init.CelestiumDimensions;
 import dev.amblelabs.celestium.space.AstralBodyEntries;
 import dev.amblelabs.celestium.space.CelestialMath;
 import dev.amblelabs.celestium.space.StarSystemEntries;
+import dev.amblelabs.celestium.world.grid.SubGridCollisions;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -21,6 +24,9 @@ import java.util.Set;
 
 @Mixin(value = Entity.class, priority = 1500)
 public class EntityMixin {
+
+    @Unique
+    private static final double SURFACE_GRAVITY_RANGE = 3.0;
 
     @Inject(method="tick",at=@At("HEAD"))
     private void celestium$teleportTo(CallbackInfo ci) {
@@ -56,11 +62,18 @@ public class EntityMixin {
         }
     }
 
-    @Inject(method = "getGravity", at = @At("HEAD"), cancellable = true)
-    private void celestium$zeroGravity(CallbackInfoReturnable<Double> cir) {
+    @Inject(method = "isNoGravity", at = @At("HEAD"), cancellable = true)
+    private void celestium$zeroGravity(CallbackInfoReturnable<Boolean> cir) {
         Entity self = (Entity) (Object) this;
-        if (self.level().dimension().equals(CelestiumDimensions.SPACE_KEY)) {
-            cir.setReturnValue(0.0);
+        if (self.level().dimension().equals(CelestiumDimensions.SPACE_KEY) && !celestium$nearSurface(self)) {
+            cir.setReturnValue(true);
         }
+    }
+
+    @Unique
+    private static boolean celestium$nearSurface(Entity entity) {
+        AABB box = entity.getBoundingBox();
+        AABB below = new AABB(box.minX, box.minY - SURFACE_GRAVITY_RANGE, box.minZ, box.maxX, box.minY, box.maxZ);
+        return !entity.level().noCollision(entity, below) || !SubGridCollisions.noGridCollision(entity, below, entity.level());
     }
 }
