@@ -10,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Optional;
 
-public record AstralBody(boolean isStar, int defaultColor, float axis, float spinSpeed, Orbit orbit, @Nullable Atmosphere atmosphere, boolean isSatellite, List<ResourceKey<AstralBody>> satellites, int sizeX, int sizeY, int sizeZ) {
+public record AstralBody(boolean isStar, int defaultColor, float axis, float spinSpeed, Orbit orbit, @Nullable Atmosphere atmosphere, boolean isSatellite, List<ResourceKey<AstralBody>> satellites, int sizeX, int sizeY, int sizeZ, List<Ring> rings) {
     //TODO: bash a better system for colours implementation for datapacks <3
     public static final Codec<AstralBody> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.BOOL.optionalFieldOf("is_star", false).forGetter(AstralBody::isStar),
@@ -23,9 +23,10 @@ public record AstralBody(boolean isStar, int defaultColor, float axis, float spi
             ResourceKey.codec(CelestiumRegistries.ASTRAL_BODY).listOf().optionalFieldOf("satellites", List.of()).forGetter(AstralBody::satellites),
             Codec.INT.fieldOf("size_x").forGetter(AstralBody::sizeX),
             Codec.INT.fieldOf("size_y").forGetter(AstralBody::sizeY),
-            Codec.INT.fieldOf("size_z").forGetter(AstralBody::sizeZ)
-    ).apply(i, (star, color, axis, spin, orbit, atmo, sat, sats, x, y, z) ->
-            new AstralBody(star, color, axis, spin, orbit, atmo.orElse(null), sat, sats, x, y, z)));
+            Codec.INT.fieldOf("size_z").forGetter(AstralBody::sizeZ),
+            Ring.CODEC.listOf().optionalFieldOf("rings", List.of()).forGetter(AstralBody::rings)
+    ).apply(i, (star, color, axis, spin, orbit, atmo, sat, sats, x, y, z, rings) ->
+            new AstralBody(star, color, axis, spin, orbit, atmo.orElse(null), sat, sats, x, y, z, rings)));
 
     public float spinDegrees(double ticks) {
         return (float) ((ticks / 20.0 * spinSpeed * Orbit.SPEED_SCALE) % 360.0);

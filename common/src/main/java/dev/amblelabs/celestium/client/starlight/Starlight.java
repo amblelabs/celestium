@@ -182,6 +182,26 @@ public final class Starlight {
         return ARGB.color(channel(alpha * peak), channel(r / peak), channel(g / peak), channel(b / peak));
     }
 
+    public static int ring(Scene scene, Vector3dc pos, Vector3dc normal, int color) {
+        Vector3d toLight = new Vector3d();
+        float[] vis = new float[3];
+        float r = 0.01F, g = 0.01F, b = 0.01F;
+
+        for (Light light : scene.lights()) {
+            light.position().sub(pos, toLight).normalize();
+            float facing = 0.25F + 0.75F * (float) Math.abs(normal.dot(toLight));
+            shadow(scene, null, pos, light, vis);
+            r += light.r() * facing * vis[0];
+            g += light.g() * facing * vis[1];
+            b += light.b() * facing * vis[2];
+        }
+
+        return ARGB.color(ARGB.alpha(color),
+                channel(ARGB.red(color) / 255F * r),
+                channel(ARGB.green(color) / 255F * g),
+                channel(ARGB.blue(color) / 255F * b));
+    }
+
     public static void illumination(Scene scene, Vector3dc pos, float[] rgb, Vector3d direction) {
         Vector3d toLight = new Vector3d();
         Vector3d up = new Vector3d();

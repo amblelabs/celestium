@@ -13,5 +13,12 @@
   "atmosphere": {
     "color": -39926,
     "layers": 4
-  }
+  },
+  "rings": [
+    {
+      "inner_radius": 1.72,
+      "outer_radius": 1.81,
+      "color": 815825518
+    }
+  ]
 }

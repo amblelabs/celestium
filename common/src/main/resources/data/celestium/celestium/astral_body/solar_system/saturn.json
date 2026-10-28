@@ -13,5 +13,22 @@
   "atmosphere": {
     "color": -3631526,
     "layers": 2
-  }
+  },
+  "rings": [
+    {
+      "inner_radius": 1.239,
+      "outer_radius": 1.527,
+      "color": 1352042355
+    },
+    {
+      "inner_radius": 1.527,
+      "outer_radius": 1.951,
+      "color": -791166048
+    },
+    {
+      "inner_radius": 2.027,
+      "outer_radius": 2.269,
+      "color": -1598115951
+    }
+  ]
 }

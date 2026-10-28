@@ -6,6 +6,7 @@ import dev.amblelabs.celestium.client.starlight.Starlight;
 import dev.amblelabs.celestium.init.CelestiumDimensions;
 import dev.amblelabs.celestium.init.CelestiumRegistries;
 import dev.amblelabs.celestium.space.AstralBody;
+import dev.amblelabs.celestium.space.Ring;
 import dev.amblelabs.celestium.space.StarSystem;
 import dev.amblelabs.celestium.util.SkyFadeUtil;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
@@ -27,6 +28,7 @@ import org.joml.Quaterniond;
 import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
+import org.joml.Vector3fc;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -105,7 +107,7 @@ public final class SpaceSkyRenderer {
 
     public record Star(float yaw, float pitch, float size, int color) {}
 
-    private enum Pass { GLOW, SOLID }
+    private enum Pass { GLOW, SOLID, RINGS }
 
     private record Frame(VertexConsumer buffer, double ticks, Pass pass, float maxRenderDistance,
                          List<Starlight.Scene> scenes, Vector3d camera) {}
@@ -171,6 +173,11 @@ public final class SpaceSkyRenderer {
             renderBodies(new Frame(buffer, ticks, Pass.GLOW, maxRenderDistance, scenes, camera), pose);
             Profiler.get().pop();
         });
+        out.submitCustomGeometry(poses, CelestiumRenderTypes.SKY_SOLID, (pose, buffer) -> {
+            Profiler.get().push("celestium_planet_rings");
+            renderBodies(new Frame(buffer, ticks, Pass.RINGS, maxRenderDistance, scenes, camera), pose);
+            Profiler.get().pop();
+        });
     }
 
     private static void renderBodies(Frame frame, PoseStack.Pose root) {
@@ -197,7 +204,11 @@ public final class SpaceSkyRenderer {
         float shell = body.isStar()
                 ? STAR_GLOW_OUTER_SCALE * (1.0F + STAR_PULSE_AMOUNT)
                 : body.atmosphere() != null ? ATMOSPHERE_OUTER_SCALE : 1.0F;
-        float farthest = self.pose().getTranslation(new Vector3f()).length() + size * HALF_CUBE_DIAGONAL * shell;
+        float extent = size * HALF_CUBE_DIAGONAL * shell;
+        for (Ring ring : body.rings()) {
+            extent = Math.max(extent, ring.outerRadius() * size * 0.7072F);
+        }
+        float farthest = self.pose().getTranslation(new Vector3f()).length() + extent;
         if (farthest > frame.maxRenderDistance()) {
             self.pose().scaleLocal(frame.maxRenderDistance() / farthest);
         }
@@ -213,6 +224,11 @@ public final class SpaceSkyRenderer {
             case SOLID -> {
                 if (!body.isStar()) {
                     renderSurface(frame, scene, state, id, self, detail);
+                }
+            }
+            case RINGS -> {
+                if (!body.rings().isEmpty()) {
+                    renderRings(frame, scene, state, id, self, detail);
                 }
             }
         }
@@ -295,6 +311,75 @@ public final class SpaceSkyRenderer {
         }
     }
 
+    private static void renderRings(Frame frame, Starlight.Scene scene, Starlight.Body state, Identifier id, PoseStack.Pose self, int detail) {
+        AstralBody body = state.body();
+        List<Ring> rings = body.rings();
+        float radius = Math.max(body.sizeX(), Math.max(body.sizeY(), body.sizeZ())) / 2F;
+        Lit lit = LIT.computeIfAbsent(id, k -> new Lit());
+        long bucket = refreshBucket(id, frame.ticks());
+
+        if (lit.rings == null || lit.ringsDetail != detail || lit.ringsBucket != bucket) {
+            lit.rings = new int[rings.size()][];
+            Vector3d world = new Vector3d();
+            Vector3d normal = new Vector3d();
+            float[] point = new float[2];
+            for (int r = 0; r < rings.size(); r++) {
+                Ring ring = rings.get(r);
+                Vector3fc rot = ring.rotation();
+                Matrix4d ringFrame = new Matrix4d(state.transform())
+                        .rotateXYZ(Math.toRadians(rot.x()), Math.toRadians(rot.y()), Math.toRadians(rot.z()));
+                ringFrame.transformDirection(normal.set(0, 1, 0)).normalize();
+                int[] colors = new int[4 * (detail + 1) * 2];
+                for (int side = 0; side < 4; side++) {
+                    for (int i = 0; i <= detail; i++) {
+                        for (int edge = 0; edge < 2; edge++) {
+                            ringPoint(side, (float) i / detail, (edge == 0 ? ring.innerRadius() : ring.outerRadius()) * radius, point);
+                            colors[(side * (detail + 1) + i) * 2 + edge] = Starlight.ring(scene,
+                                    ringFrame.transformPosition(world.set(point[0], 0, point[1])), normal, ring.color());
+                        }
+                    }
+                }
+                lit.rings[r] = colors;
+            }
+            lit.ringsDetail = detail;
+            lit.ringsBucket = bucket;
+        }
+
+        float[] point = new float[2];
+        for (int r = 0; r < rings.size(); r++) {
+            Ring ring = rings.get(r);
+            Vector3fc rot = ring.rotation();
+            PoseStack.Pose pose = self.copy();
+            pose.rotate(new Quaternionf().rotationXYZ(
+                    (float) Math.toRadians(rot.x()), (float) Math.toRadians(rot.y()), (float) Math.toRadians(rot.z())));
+            float inner = ring.innerRadius() * radius, outer = ring.outerRadius() * radius;
+            int[] colors = lit.rings[r];
+            for (int side = 0; side < 4; side++) {
+                for (int i = 0; i < detail; i++) {
+                    ringVertex(frame.buffer(), pose, side, i, detail, inner, colors[(side * (detail + 1) + i) * 2], point);
+                    ringVertex(frame.buffer(), pose, side, i, detail, outer, colors[(side * (detail + 1) + i) * 2 + 1], point);
+                    ringVertex(frame.buffer(), pose, side, i + 1, detail, outer, colors[(side * (detail + 1) + i + 1) * 2 + 1], point);
+                    ringVertex(frame.buffer(), pose, side, i + 1, detail, inner, colors[(side * (detail + 1) + i + 1) * 2], point);
+                }
+            }
+        }
+    }
+
+    private static void ringVertex(VertexConsumer buffer, PoseStack.Pose pose, int side, int i, int detail, float extent, int color, float[] point) {
+        ringPoint(side, (float) i / detail, extent, point);
+        buffer.addVertex(pose, point[0], 0, point[1]).setColor(color);
+    }
+
+    private static void ringPoint(int side, float t, float extent, float[] out) {
+        float along = Mth.lerp(t, -extent, extent);
+        switch (side) {
+            case 0 -> { out[0] = extent; out[1] = along; }
+            case 1 -> { out[0] = -along; out[1] = extent; }
+            case 2 -> { out[0] = -extent; out[1] = -along; }
+            default -> { out[0] = along; out[1] = -extent; }
+        }
+    }
+
     private static long refreshBucket(Identifier id, double ticks) {
         return (long) Math.floor((ticks + Math.floorMod(id.hashCode(), LIGHTING_REFRESH_TICKS)) / LIGHTING_REFRESH_TICKS);
     }
@@ -337,6 +422,9 @@ public final class SpaceSkyRenderer {
         int[][] atmosphere;
         int atmosphereDetail;
         long atmosphereBucket;
+        int[][] rings;
+        int ringsDetail;
+        long ringsBucket;
         final Vector3d view = new Vector3d();
     }
 
