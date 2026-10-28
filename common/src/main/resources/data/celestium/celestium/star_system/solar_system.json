@@ -1,19 +1,19 @@
 {
   "astral_bodies": [
-    "celestium:sol",
-    "celestium:mercury",
-    "celestium:venus",
-    "celestium:terra",
-    "celestium:luna",
-    "celestium:mars",
-    "celestium:jupiter",
-    "celestium:saturn",
-    "celestium:uranus",
-    "celestium:neptune",
-    "celestium:pluto"
+    "celestium:solar_system/stars/sol",
+    "celestium:solar_system/mercury",
+    "celestium:solar_system/venus",
+    "celestium:solar_system/terra",
+    "celestium:solar_system/satellites/earth/luna",
+    "celestium:solar_system/mars",
+    "celestium:solar_system/jupiter",
+    "celestium:solar_system/saturn",
+    "celestium:solar_system/uranus",
+    "celestium:solar_system/neptune",
+    "celestium:solar_system/pluto"
   ],
   "time_code": 0.0,
-  "central_star": "celestium:sol",
+  "central_star": "celestium:solar_system/stars/sol",
   "rot": [
     0.0,
     0.0,
