@@ -6,6 +6,8 @@ plugins {
 //    id("dev.kikugie.fletching-table.neoforge") version "0.1.0-alpha.13" // TODO(template): review
 }
 
+apply(from = rootProject.file("versioning.gradle"))
+
 neoForge {
     enable {
         version = commonMod.dep("neoforge")

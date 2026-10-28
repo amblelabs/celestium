@@ -6,6 +6,8 @@ plugins {
 //    id("dev.kikugie.fletching-table.fabric") version "0.1.0-alpha.14" // TODO(template): review
 }
 
+apply(from = rootProject.file("versioning.gradle"))
+
 stonecutter {
 
 }
