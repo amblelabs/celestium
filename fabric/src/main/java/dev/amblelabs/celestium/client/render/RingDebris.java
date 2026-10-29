@@ -25,7 +25,7 @@ public final class RingDebris {
     private static final double RANGE = 96.0;
     private static final double CELL = 16.0;
     private static final double THICKNESS = 6.0;
-    private static final int MAX_PER_CELL = 5;
+    private static final int MAX_PER_CELL = 10;
     private static final double ORBIT_SPEED = 2.0;
 
     private static final float[][] NORMALS = {

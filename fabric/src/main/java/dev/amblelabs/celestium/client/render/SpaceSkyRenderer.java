@@ -41,6 +41,9 @@ public final class SpaceSkyRenderer {
     private static final Identifier PLANET_TEXTURE = Identifier.withDefaultNamespace("textures/block/diorite.png");
     private static final RenderType PLANET_SURFACE = CelestiumRenderTypes.planetSurface(PLANET_TEXTURE);
 
+    private static final Identifier RING_DEBRIS_TEXTURE = Identifier.withDefaultNamespace("textures/block/packed_mud.png");
+    private static final RenderType RING_DEBRIS_SURFACE = CelestiumRenderTypes.planetSurface(RING_DEBRIS_TEXTURE);
+
     private static final int STAR_COUNT = 400;
     private static final int[] STAR_COLORS = {0x9DB4FF, 0xCAD8FF, 0xF8F7FF, 0xFFF4EA, 0xFFE8A0, 0xFFB46B, 0xFF7A4A};
     private static final List<Star> STARS = generateStars();
@@ -167,6 +170,8 @@ public final class SpaceSkyRenderer {
             Profiler.get().push("celestium_planet_surfaces");
             renderBodies(new Frame(buffer, ticks, Pass.SOLID, maxRenderDistance, scenes, camera), pose);
             Profiler.get().pop();
+        });
+        out.submitCustomGeometry(poses, RING_DEBRIS_SURFACE, (pose, buffer) -> {
             Profiler.get().push("celestium_ring_debris");
             RingDebris.render(buffer, pose, scenes, camera, ticks);
             Profiler.get().pop();
