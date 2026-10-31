@@ -2,9 +2,6 @@ plugins {
     kotlin("jvm")
     `multiloader-loader`
     id("dev.kikugie.loom-back-compat")
-    id("versioning")
-//    id("com.google.devtools.ksp") version "2.4.12" // TODO(template): review
-//    id("dev.kikugie.fletching-table.fabric") version "0.1.0-alpha.14" // TODO(template): review
 }
 
 stonecutter {
@@ -34,13 +31,16 @@ loom {
     runs {
         getByName("client") {
             client()
-            configName = "Fabric Client"
-            ideConfigGenerated(true)
+
+            displayName = "Fabric Client"
+            generateRunConfig = true
         }
+
         getByName("server") {
             server()
-            configName = "Fabric Server"
-            ideConfigGenerated(true)
+
+            displayName = "Fabric Server"
+            generateRunConfig = true
         }
     }
 }

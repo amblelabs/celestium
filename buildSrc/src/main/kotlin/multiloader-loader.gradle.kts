@@ -6,13 +6,15 @@ plugins {
     id("multiloader-common")
 }
 
-val commonJava: Configuration by configurations.creating {
+val commonJava = configurations.register("commonJava") {
     isCanBeResolved = true
 }
-val commonKotlin: Configuration by configurations.creating {
+
+val commonKotlin = configurations.register("commonKotlin") {
     isCanBeResolved = true
 }
-val commonResources: Configuration by configurations.creating {
+
+val commonResources = configurations.register("commonResources") {
     isCanBeResolved = true
 }
 

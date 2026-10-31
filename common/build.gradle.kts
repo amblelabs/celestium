@@ -1,22 +1,14 @@
+@file:Suppress("UnstableApiUsage")
+
 plugins {
     kotlin("jvm")
     `multiloader-common`
     id("dev.kikugie.loom-back-compat")
-    id("versioning")
-//    id("com.google.devtools.ksp") version "2.3.12" // TODO(template): review
-//    id("dev.kikugie.fletching-table.fabric") version "0.1.0-alpha.14" // TODO(template): review
 }
 
 stonecutter {
 
 }
-
-//fletchingTable {
-//     TODO(template): review
-//    j52j.register("main") {
-//        extension("json", "**/*.json5")
-//    }
-//}
 
 loom {
     mixin {
@@ -39,17 +31,17 @@ dependencies {
 }
 
 // TODO(template): same as buildSrc/.../multiloader-loader.gradle.kts
-val commonJava: Configuration by configurations.creating {
+val commonJava = configurations.register("commonJava") {
     isCanBeResolved = false
     isCanBeConsumed = true
 }
 
-val commonKotlin: Configuration by configurations.creating {
-    isCanBeConsumed = true
+val commonKotlin = configurations.register("commonKotlin") {
     isCanBeResolved = false
+    isCanBeConsumed = true
 }
 
-val commonResources: Configuration by configurations.creating {
+val commonResources = configurations.register("commonResources") {
     isCanBeResolved = false
     isCanBeConsumed = true
 }
