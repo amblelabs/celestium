@@ -104,7 +104,7 @@ public class GridCarrier extends Entity {
     }
 
     @Override
-    public InteractionResult interact(Player player, InteractionHand hand, Vec3 location) {
+    public @NonNull InteractionResult interact(@NonNull Player player, @NonNull InteractionHand hand, @NonNull Vec3 location) {
         if (hand == InteractionHand.MAIN_HAND && player.getMainHandItem().isEmpty()) {
             if (this.exceedsBuildHeight()) return InteractionResult.PASS;
             this.clearMovement();
@@ -157,7 +157,7 @@ public class GridCarrier extends Entity {
     }
 
     @Override
-    protected AABB makeBoundingBox(Vec3 pos) {
+    protected @NonNull AABB makeBoundingBox(@NonNull Vec3 pos) {
         if (this.grid == null)
             return super.makeBoundingBox(pos);
 
@@ -166,7 +166,7 @@ public class GridCarrier extends Entity {
     }
 
     @Override
-    public EntityDimensions getDimensions(Pose pose) {
+    public @NonNull EntityDimensions getDimensions(@NonNull Pose pose) {
         if (this.grid == null)
             return super.getDimensions(pose);
 
@@ -181,9 +181,8 @@ public class GridCarrier extends Entity {
         input.read("biome", ResourceKey.codec(Registries.BIOME)).flatMap(key -> this.registryAccess()
                 .lookupOrThrow(Registries.BIOME).get(key)).ifPresent(this.grid::setBiome);
 
-        input.read("movement_direction", Direction.CODEC).ifPresentOrElse(dir -> {
-            this.setMovement(dir, input.getFloatOr("movement_speed", 0f));
-        }, this::clearMovement);
+        input.read("movement_direction", Direction.CODEC).ifPresentOrElse(dir ->
+                this.setMovement(dir, input.getFloatOr("movement_speed", 0f)), this::clearMovement);
     }
 
     @Override
