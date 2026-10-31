@@ -79,11 +79,13 @@ public class GridCarrier extends Entity {
 
     private void tickServer() {
         float speed = this.getMovementSpeed();
+        float weight = this.grid.getBlocks().countSolidBlocks();
+        float moveSpeed = speed / (1f + weight * 0.001f);
 
         if (this.exceedsBuildHeight()) {
             this.placeInTicks = 0;
             if (this.movementCollider != null) {
-                this.tickMovement(this.movementCollider, this.getMovementDirection(), speed);
+                this.tickMovement(this.movementCollider, this.getMovementDirection(), moveSpeed);
             }
             return;
         }
@@ -99,7 +101,7 @@ public class GridCarrier extends Entity {
                 this.discard();
             }
         } else if (this.movementCollider != null) {
-            this.tickMovement(this.movementCollider, this.getMovementDirection(), speed);
+            this.tickMovement(this.movementCollider, this.getMovementDirection(), moveSpeed);
         }
     }
 

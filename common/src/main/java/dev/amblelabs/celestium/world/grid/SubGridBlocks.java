@@ -109,6 +109,14 @@ public class SubGridBlocks {
         this.sizeZ = k;
     }
 
+    public int countSolidBlocks() {
+        int count = 0;
+        for (BlockState state : this.blockStates) {
+            if (!state.isAir()) count++;
+        }
+        return count;
+    }
+
     public void setBlockState(int i, int j, int k, BlockState blockState) {
         int l = this.index(i, j, k);
         if (l == -1) {
