@@ -63,7 +63,7 @@ public final class GridMesh {
    }
 
    public static GridMesh of(SubGrid grid, ClientLevel level) {
-      Object var3 = grid.getRenderCache();
+      Object var3 = grid.renderCache;
       if (var3 instanceof GridMesh mesh) {
          if (mesh.version == grid.getVersion()) {
             mesh.level = level;
@@ -73,7 +73,7 @@ public final class GridMesh {
 
       Profiler.get().push("celestium_grid_mesh");
       GridMesh mesh = new GridMesh(grid, level);
-      grid.setRenderCache(mesh);
+      grid.renderCache = mesh;
       Profiler.get().pop();
       return mesh;
    }
@@ -122,7 +122,7 @@ public final class GridMesh {
    public static int withGridBlockLight(ClientLevel level, BlockPos pos, int value) {
       for (SubGrid grid : GridLevelExtKt.grids(level).values()) {
          if (value >= 15) break;
-         if (grid.getRenderCache() instanceof GridMesh mesh && mesh.version == grid.getVersion()) {
+         if (grid.renderCache instanceof GridMesh mesh && mesh.version == grid.getVersion()) {
             value = Math.max(value, mesh.blockLightAt(
                     pos.getX() - mesh.origin.getX(), pos.getY() - mesh.origin.getY(), pos.getZ() - mesh.origin.getZ()));
          }

@@ -26,7 +26,7 @@ public abstract class ClientLevelEntityCallbacksMixin {
    private void celestium$untrackGrid(Entity entity, CallbackInfo ci) {
       if (entity instanceof GridCarrier carrier) {
          GridLevelExtKt.untrackGrid(carrier.level(), carrier);
-         carrier.grid().setRenderCache(null);
+         carrier.grid().renderCache = null;
       }
    }
 }
