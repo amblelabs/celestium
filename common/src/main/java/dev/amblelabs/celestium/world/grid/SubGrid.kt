@@ -18,7 +18,7 @@ import net.minecraft.world.phys.Vec3
 import net.minecraft.world.phys.shapes.VoxelShape
 import java.util.*
 
-open class SubGrid(protected val level: Level, protected val carrier: GridCarrier) : BlockGetter, CollisionGetter {
+open class SubGrid(val level: Level, val carrier: GridCarrier) : BlockGetter, CollisionGetter {
 
     var blocks = SubGridBlocks(0, 0, 0)
         set(value) {
@@ -66,7 +66,7 @@ open class SubGrid(protected val level: Level, protected val carrier: GridCarrie
 
     fun updatePosition(x: Double, y: Double, z: Double) {
         this.nextBoundingBox =
-            AABB(x, y, z, x + this.blocks.sizeX() + 1, y + this.blocks.sizeY() + 1, z + this.blocks.sizeZ() + 1)
+            AABB(x, y, z, x + this.blocks.sizeX + 1, y + this.blocks.sizeY + 1, z + this.blocks.sizeZ + 1)
     }
 
     fun id(): UUID {
@@ -86,7 +86,7 @@ open class SubGrid(protected val level: Level, protected val carrier: GridCarrie
     }
 
     override fun getHeight(): Int {
-        return this.blocks.sizeY()
+        return this.blocks.sizeY
     }
 
     override fun getMinY(): Int {

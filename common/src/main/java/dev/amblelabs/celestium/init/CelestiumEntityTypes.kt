@@ -1,25 +1,26 @@
-package dev.amblelabs.celestium.init;
+package dev.amblelabs.celestium.init
 
-import dev.amblelabs.celestium.world.level.entity.PocketStarEntity;
-import dev.amblelabs.celestium.world.grid.GridCarrier;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.MobCategory;
+import dev.amblelabs.celestium.world.grid.GridCarrier
+import dev.amblelabs.celestium.world.level.entity.PocketStarEntity
+import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.MobCategory
 
-public class CelestiumEntityTypes {
+object CelestiumEntityTypes {
+    @JvmField
+    val POCKET_STAR: EntityType<PocketStarEntity> =
+        EntityType.Builder.of(::PocketStarEntity, MobCategory.MISC)
+            .sized(1f, 1f)
+            .fireImmune()
+            .build(CelestiumEntityTypeIds.POCKET_STAR)
 
-    public static final EntityType<PocketStarEntity> POCKET_STAR =
-            EntityType.Builder.<PocketStarEntity>of(PocketStarEntity::new, MobCategory.MISC)
-                    .sized(1f, 1f)
-                    .fireImmune()
-                    .build(CelestiumEntityTypeIds.POCKET_STAR);
+    @JvmField
+    val GRID_CARRIER: EntityType<GridCarrier> =
+        EntityType.Builder.of(::GridCarrier, MobCategory.MISC)
+            .sized(1f, 1f)
+            .fireImmune()
+            .build(CelestiumEntityTypeIds.GRID_CARRIER)
 
-    public static final EntityType<GridCarrier> GRID_CARRIER =
-            EntityType.Builder.of(GridCarrier::new, MobCategory.MISC)
-                    .sized(1f, 1f)
-                    .fireImmune()
-                    .build(CelestiumEntityTypeIds.GRID_CARRIER);
-
-    public static void initialize() {
-
+    @JvmStatic
+    fun initialize() {
     }
 }

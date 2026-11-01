@@ -1,6 +1,6 @@
 package dev.amblelabs.celestium.mixins.grid;
 
-import dev.amblelabs.celestium.api.GridRiderExtKt;
+import dev.amblelabs.celestium.api.GridRiderKt;
 import dev.amblelabs.celestium.network.protocol.game.GridWaitPayload;
 import dev.amblelabs.celestium.platform.Services;
 import net.minecraft.network.Connection;
@@ -19,7 +19,7 @@ public abstract class PlayerListMixin {
 
    @Inject(method = "placeNewPlayer", at = @At("TAIL"))
    private void celestium$sendPendingGrid(Connection connection, ServerPlayer player, CommonListenerCookie cookie, CallbackInfo ci) {
-      UUID gridId = GridRiderExtKt.getPendingGrid(player);
+      UUID gridId = GridRiderKt.getPendingGrid(player);
 
       if (gridId != null)
          Services.PLATFORM.sendToPlayer(player, new GridWaitPayload(gridId));

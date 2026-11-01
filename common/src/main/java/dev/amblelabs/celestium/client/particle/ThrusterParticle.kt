@@ -1,112 +1,103 @@
-package dev.amblelabs.celestium.client.particle;
+package dev.amblelabs.celestium.client.particle
 
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.particle.*;
-import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.player.Player;
+import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
+import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.client.particle.Particle
+import net.minecraft.client.particle.ParticleProvider
+import net.minecraft.client.particle.SingleQuadParticle
+import net.minecraft.client.particle.SpriteSet
+import net.minecraft.core.particles.SimpleParticleType
+import net.minecraft.util.Mth
+import net.minecraft.util.RandomSource
+import kotlin.math.max
 
-public class ThrusterParticle extends SingleQuadParticle {
-    private final SpriteSet sprites;
-    private final float shade;
+class ThrusterParticle private constructor(
+    level: ClientLevel, x: Double, y: Double, z: Double,
+    xa: Double, ya: Double, za: Double, sprites: SpriteSet
+) : SingleQuadParticle(level, x, y, z, 0.0, 0.0, 0.0, sprites.first()) {
+    private val sprites: SpriteSet
+    private val shade: Float
 
-    private ThrusterParticle(final ClientLevel level, final double x, final double y, final double z,
-                             final double xa, final double ya, final double za, final SpriteSet sprites) {
-        super(level, x, y, z, 0.0D, 0.0D, 0.0D, sprites.first());
-        this.friction = 0.96F;
-        this.sprites = sprites;
-        this.xd *= 0.1D;
-        this.yd *= 0.1D;
-        this.zd *= 0.1D;
-        this.xd += xa;
-        this.yd += ya;
-        this.zd += za;
-        float col = 1.0F - this.random.nextFloat() * 0.3F;
-        this.shade = 1.0F - this.random.nextFloat() * 0.3F;
-        this.rCol = col;
-        this.gCol = col;
-        this.bCol = col;
-        this.quadSize *= 5F;
-        int baseLifetime = (int) (8.0F / (this.random.nextFloat() * 0.8 + 0.3));
-        this.lifetime = Math.max((int) (baseLifetime * 5.0F), 1);
-        this.hasPhysics = false;
-        this.setSpriteFromAge(sprites);
-        this.updateGradient();
+    init {
+        this.friction = 0.96f
+        this.sprites = sprites
+        this.xd *= 0.1
+        this.yd *= 0.1
+        this.zd *= 0.1
+        this.xd += xa
+        this.yd += ya
+        this.zd += za
+        val col = 1.0f - this.random.nextFloat() * 0.3f
+        this.shade = 1.0f - this.random.nextFloat() * 0.3f
+        this.rCol = col
+        this.gCol = col
+        this.bCol = col
+        this.quadSize *= 5f
+        val baseLifetime = (8.0f / (this.random.nextFloat() * 0.8 + 0.3)).toInt()
+        this.lifetime = max((baseLifetime * 5.0f).toInt(), 1)
+        this.hasPhysics = false
+        this.setSpriteFromAge(sprites)
+        this.updateGradient()
     }
 
-    private void updateGradient() {
-        float t = Mth.clamp((float) this.age / this.lifetime, 0.0F, 1.0F);
-        this.rCol = Mth.lerp(t, 0.20F, 0.60F) * shade;
-        this.gCol = Mth.lerp(t, 0.50F, 0.20F) * shade;
-        this.bCol = Mth.lerp(t, 1.00F, 0.90F) * shade;
+    private fun updateGradient() {
+        val t = Mth.clamp(this.age.toFloat() / this.lifetime, 0.0f, 1.0f)
+        this.rCol = Mth.lerp(t, 0.20f, 0.60f) * shade
+        this.gCol = Mth.lerp(t, 0.50f, 0.20f) * shade
+        this.bCol = Mth.lerp(t, 1.00f, 0.90f) * shade
     }
 
-    @Override
-    public SingleQuadParticle.Layer getLayer() {
-        return Layer.TRANSLUCENT;
+    public override fun getLayer(): Layer {
+        return Layer.TRANSLUCENT
     }
 
-    @Override
-    public float getQuadSize(final float a) {
-        return this.quadSize * Mth.clamp(((float) this.age + a) / (float) this.lifetime * 32.0F, 0.0F, 1.0F);
+    override fun getQuadSize(a: Float): Float {
+        return this.quadSize * Mth.clamp((this.age.toFloat() + a) / this.lifetime.toFloat() * 32.0f, 0.0f, 1.0f)
     }
 
-    @Override
-    public void tick() {
-        super.tick();
-        this.updateGradient();
+    override fun tick() {
+        super.tick()
+        this.updateGradient()
 
         if (!this.removed) {
-            this.setSpriteFromAge(this.sprites);
-            Player player = this.level.getNearestPlayer(this.x, this.y, this.z, 2.0D, false);
+            this.setSpriteFromAge(this.sprites)
+            val player = this.level.getNearestPlayer(this.x, this.y, this.z, 2.0, false)
             if (player != null) {
-                double playerY = player.getY();
+                val playerY = player.y
                 if (this.y > playerY) {
-                    this.y += (playerY - this.y) * 0.2;
-                    this.yd += (player.getDeltaMovement().y - this.yd) * 0.2;
-                    this.setPos(this.x, this.y, this.z);
+                    this.y += (playerY - this.y) * 0.2
+                    this.yd += (player.deltaMovement.y - this.yd) * 0.2
+                    this.setPos(this.x, this.y, this.z)
                 }
             }
         }
     }
 
     @Environment(EnvType.CLIENT)
-    public static class Provider implements ParticleProvider<SimpleParticleType> {
-        private final SpriteSet sprites;
-
-        public Provider(final SpriteSet sprites) {
-            this.sprites = sprites;
-        }
-
-        @Override
-        public Particle createParticle(final SimpleParticleType options, final ClientLevel level,
-                                       final double x, final double y, final double z,
-                                       final double xAux, final double yAux, final double zAux,
-                                       final RandomSource random) {
-            return new ThrusterParticle(level, x, y, z, xAux, yAux, zAux, this.sprites);
+    class Provider(private val sprites: SpriteSet) : ParticleProvider<SimpleParticleType> {
+        override fun createParticle(
+            options: SimpleParticleType, level: ClientLevel,
+            x: Double, y: Double, z: Double,
+            xAux: Double, yAux: Double, zAux: Double,
+            random: RandomSource
+        ): Particle? {
+            return ThrusterParticle(level, x, y, z, xAux, yAux, zAux, this.sprites)
         }
     }
 
     @Environment(EnvType.CLIENT)
-    public static class SneezeProvider implements ParticleProvider<SimpleParticleType> {
-        private final SpriteSet sprites;
-
-        public SneezeProvider(final SpriteSet sprites) {
-            this.sprites = sprites;
-        }
-
-        @Override
-        public Particle createParticle(final SimpleParticleType options, final ClientLevel level,
-                                       final double x, final double y, final double z,
-                                       final double xAux, final double yAux, final double zAux,
-                                       final RandomSource random) {
-            ThrusterParticle particle = new ThrusterParticle(level, x, y, z, xAux, yAux, zAux, this.sprites);
-            particle.setColor(0.22F, 1.0F, 0.53F);
-            particle.setAlpha(0.4F);
-            return particle;
+    class SneezeProvider(private val sprites: SpriteSet) : ParticleProvider<SimpleParticleType> {
+        override fun createParticle(
+            options: SimpleParticleType, level: ClientLevel,
+            x: Double, y: Double, z: Double,
+            xAux: Double, yAux: Double, zAux: Double,
+            random: RandomSource
+        ): Particle {
+            val particle = ThrusterParticle(level, x, y, z, xAux, yAux, zAux, this.sprites)
+            particle.setColor(0.22f, 1.0f, 0.53f)
+            particle.setAlpha(0.4f)
+            return particle
         }
     }
 }

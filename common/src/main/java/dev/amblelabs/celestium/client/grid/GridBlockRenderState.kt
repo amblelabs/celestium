@@ -1,44 +1,35 @@
-package dev.amblelabs.celestium.client.grid;
+package dev.amblelabs.celestium.client.grid
 
-import net.minecraft.client.renderer.block.MovingBlockRenderState;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.LightLayer;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.FluidState;
-import org.jspecify.annotations.NonNull;
+import net.minecraft.client.renderer.block.MovingBlockRenderState
+import net.minecraft.core.BlockPos
+import net.minecraft.world.level.LightLayer
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.material.FluidState
 
-public class GridBlockRenderState extends MovingBlockRenderState {
-   private final GridMesh mesh;
+class GridBlockRenderState(private val mesh: GridMesh, localPos: BlockPos, state: BlockState) : MovingBlockRenderState() {
+    init {
+        this.blockPos = localPos
+        this.randomSeedPos = localPos
+        this.blockState = state
+    }
 
-   public GridBlockRenderState(GridMesh mesh, BlockPos localPos, BlockState state) {
-      this.mesh = mesh;
-      this.blockPos = localPos;
-      this.randomSeedPos = localPos;
-      this.blockState = state;
-   }
+    override fun getBlockState(pos: BlockPos): BlockState {
+        return this.mesh.blocks.getBlockState(pos)
+    }
 
-   @Override
-   public @NonNull BlockState getBlockState(@NonNull BlockPos pos) {
-      return this.mesh.blocks().getBlockState(pos);
-   }
+    override fun getFluidState(pos: BlockPos): FluidState {
+        return this.getBlockState(pos).fluidState
+    }
 
-   @Override
-   public @NonNull FluidState getFluidState(@NonNull BlockPos pos) {
-      return this.getBlockState(pos).getFluidState();
-   }
+    override fun getBrightness(layer: LightLayer, pos: BlockPos): Int {
+        return this.mesh.worldBrightness(this, layer, pos)
+    }
 
-   @Override
-   public int getBrightness(@NonNull LightLayer layer, @NonNull BlockPos pos) {
-      return this.mesh.worldBrightness(this, layer, pos);
-   }
+    override fun getHeight(): Int {
+        return this.mesh.blocks.sizeY
+    }
 
-   @Override
-   public int getHeight() {
-      return this.mesh.blocks().sizeY();
-   }
-
-   @Override
-   public int getMinY() {
-      return 0;
-   }
+    override fun getMinY(): Int {
+        return 0
+    }
 }

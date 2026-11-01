@@ -1,7 +1,7 @@
 package dev.amblelabs.celestium.mixins.grid;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import dev.amblelabs.celestium.api.GridRiderExtKt;
+import dev.amblelabs.celestium.api.GridRiderKt;
 import dev.amblelabs.celestium.world.grid.SubGrid;
 import dev.amblelabs.celestium.world.grid.SubGridCollisions;
 import net.minecraft.world.entity.Entity;
@@ -27,7 +27,7 @@ public abstract class LivingEntityGridAnimationMixin {
             @Local(argsOnly = true) boolean useY
     ) {
         Entity entity = (Entity) (Object) this;
-        SubGrid grid = GridRiderExtKt.getAttachedGrid(entity);
+        SubGrid grid = GridRiderKt.getAttachedGrid(entity);
 
         if (grid == null) return vanillaDistance;
 
@@ -48,13 +48,13 @@ public abstract class LivingEntityGridAnimationMixin {
 
     @ModifyVariable(method = "tick", at = @At("STORE"), name = "xd")
     private double celestium$bodyTurnRelativeX(double xd) {
-        SubGrid grid = GridRiderExtKt.getAttachedGrid((Entity) (Object) this);
+        SubGrid grid = GridRiderKt.getAttachedGrid((Entity) (Object) this);
         return grid == null || !SubGridCollisions.movesWithGrid((Entity) (Object) this) ? xd : xd - grid.getLastMovement().x;
     }
 
     @ModifyVariable(method = "tick", at = @At("STORE"), name = "zd")
     private double celestium$bodyTurnRelativeZ(double zd) {
-        SubGrid grid = GridRiderExtKt.getAttachedGrid((Entity) (Object) this);
+        SubGrid grid = GridRiderKt.getAttachedGrid((Entity) (Object) this);
         return grid == null || !SubGridCollisions.movesWithGrid((Entity) (Object) this) ? zd : zd - grid.getLastMovement().z;
     }
 }

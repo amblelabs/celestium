@@ -1,90 +1,86 @@
-package dev.amblelabs.celestium.platform.services;
+package dev.amblelabs.celestium.platform.services
 
-import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.phys.Vec3;
-
-import java.util.Collection;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
+import net.minecraft.core.Holder
+import net.minecraft.core.Registry
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload
+import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.phys.Vec3
+import java.util.function.Function
+import java.util.function.Supplier
+import java.util.stream.Stream
 
 // TODO: javadocs
-public interface PlatformHelper {
-
+interface PlatformHelper {
     /**
      * Gets the name of the current platform
-     *
+     * 
      * @return The name of the current platform.
      */
-    String getPlatformName();
+    val platformName: String
 
     /**
      * Checks if a mod with the given id is loaded.
-     *
+     * 
      * @param modId The mod to check if it is loaded.
-     * @return {@code true} if the mod is loaded, {@code false} otherwise.
+     * @return `true` if the mod is loaded, `false` otherwise.
      */
-    boolean isModLoaded(String modId);
+    fun isModLoaded(modId: String): Boolean
 
     /**
      * Check if the game is currently in a development environment.
-     *
-     * @return {@code true} if in a development environment, {@code false} otherwise.
+     * 
+     * @return `true` if in a development environment, `false` otherwise.
      */
-    boolean isDevelopmentEnvironment();
+    val isDevelopmentEnvironment: Boolean
 
-    void sendToPlayer(ServerPlayer target, CustomPacketPayload packet);
+    fun sendToPlayer(target: ServerPlayer, packet: CustomPacketPayload)
 
-    void sendToAll(Stream<ServerPlayer> targets, CustomPacketPayload packet);
+    fun sendToAll(targets: Stream<ServerPlayer>, packet: CustomPacketPayload)
 
-    void sendToAll(Collection<ServerPlayer> targets, CustomPacketPayload packet);
+    fun sendToAll(targets: MutableCollection<ServerPlayer>, packet: CustomPacketPayload)
 
-    void sendToNearby(Vec3 pos, double radius, ServerLevel level, CustomPacketPayload packet);
+    fun sendToNearby(pos: Vec3, radius: Double, level: ServerLevel, packet: CustomPacketPayload)
 
-    void sendToTracking(Entity entity, CustomPacketPayload packet);
+    fun sendToTracking(entity: Entity, packet: CustomPacketPayload)
 
-    <T> Registrar<T> createRegistrar(Registry<T> registry);
-    <T> Registrar<T> createRegistrar(ResourceKey<? extends Registry<T>> registry);
+    fun <T : Any> createRegistrar(registry: Registry<T>): Registrar<T>
+    fun <T : Any> createRegistrar(registry: ResourceKey<out Registry<T>>): Registrar<T>
 
-    interface Registrar<B> {
+    interface Registrar<B: Any> {
+        fun <T : B> register(id: Identifier, t: Function<Identifier, T>): Supplier<T>
 
-        <T extends B> Supplier<T> register(Identifier id, Function<Identifier, T> t);
-
-        default <T extends B> Supplier<T> register(String name, Function<Identifier, T> t) {
-            return register(Identifier.fromNamespaceAndPath(this.namespace(), name), t);
+        fun <T : B> register(name: String, t: Function<Identifier, T>): Supplier<T> {
+            return register(Identifier.fromNamespaceAndPath(namespace, name), t)
         }
 
-        default <T extends B> Supplier<T> register(Identifier id, Supplier<T> t) {
-            return register(id, _ -> t.get());
+        fun <T : B> register(id: Identifier, t: Supplier<T>): Supplier<T> {
+            return register(id) { _ -> t.get() }
         }
 
-        default <T extends B> Supplier<T> register(String name, Supplier<T> t) {
-            return register(Identifier.fromNamespaceAndPath(this.namespace(), name), t);
+        fun <T : B> register(name: String, t: Supplier<T>): Supplier<T> {
+            return register(Identifier.fromNamespaceAndPath(namespace, name), t)
         }
 
-        <T extends B> Holder<T> registerHolder(Identifier id, Function<Identifier, T> provider);
+        fun <T : B> registerHolder(id: Identifier, provider: Function<Identifier, T>): Holder<T>
 
-        default <T extends B> Holder<T> registerHolder(String name, Function<Identifier, T> provider) {
-            return registerHolder(Identifier.fromNamespaceAndPath(this.namespace(), name), provider);
+        fun <T : B> registerHolder(name: String, provider: Function<Identifier, T>): Holder<T> {
+            return registerHolder(Identifier.fromNamespaceAndPath(namespace, name), provider)
         }
 
-        default <T extends B> Holder<T> registerHolder(Identifier id, Supplier<T> provider) {
-            return registerHolder(id, _ -> provider.get());
+        fun <T : B> registerHolder(id: Identifier, provider: Supplier<T>): Holder<T> {
+            return registerHolder(id) { _ -> provider.get() }
         }
 
-        default <T extends B> Holder<T> registerHolder(String name, Supplier<T> provider) {
-            return registerHolder(Identifier.fromNamespaceAndPath(this.namespace(), name), provider);
+        fun <T : B> registerHolder(name: String, provider: Supplier<T>): Holder<T> {
+            return registerHolder(Identifier.fromNamespaceAndPath(namespace, name), provider)
         }
 
-        String namespace();
+        val namespace: String
 
-        void registerAll();
+        fun registerAll()
     }
 }

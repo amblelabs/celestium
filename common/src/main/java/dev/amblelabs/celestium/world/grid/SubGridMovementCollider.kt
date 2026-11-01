@@ -1,90 +1,83 @@
-package dev.amblelabs.celestium.world.grid;
+package dev.amblelabs.celestium.world.grid
 
-import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.fastutil.longs.LongIterator;
-import it.unimi.dsi.fastutil.longs.LongList;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.BlockPos.MutableBlockPos;
-import net.minecraft.core.Direction.Axis;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
+import it.unimi.dsi.fastutil.longs.LongArrayList
+import it.unimi.dsi.fastutil.longs.LongList
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.state.BlockState
+import kotlin.math.max
 
-public class SubGridMovementCollider {
-    private final LongList edgeBlocks;
-    private final BlockPos size;
+class SubGridMovementCollider private constructor(private val edgeBlocks: LongList, private val size: BlockPos) {
+    fun checkCollision(level: Level, origin: BlockPos): Boolean {
+        val bottom = origin.y
+        val top = bottom + this.size.y - 1
 
-    private SubGridMovementCollider(LongList edgeBlocks, BlockPos size) {
-        this.edgeBlocks = edgeBlocks;
-        this.size = size;
-    }
-
-    public static SubGridMovementCollider generate(SubGridBlocks blocks, Direction movement) {
-        LongList edgeBlocks = new LongArrayList();
-        MutableBlockPos pos = new MutableBlockPos();
-        Direction backwards = movement.getOpposite();
-        int depth = movement.getAxis().choose(blocks.sizeX(), blocks.sizeY(), blocks.sizeZ());
-
-        for (BlockPos front : getFrontSide(blocks, movement)) {
-            pos.set(front);
-            boolean prevCollidable = false;
-
-            for (int j = 0; j < depth; j++) {
-                if (isCollidable(blocks.getBlockState(pos))) {
-                    if (!prevCollidable) {
-                        edgeBlocks.add(pos.asLong());
-                    }
-
-                    prevCollidable = true;
-                } else {
-                    prevCollidable = false;
-                }
-
-                pos.move(backwards);
-            }
-        }
-
-        return new SubGridMovementCollider(edgeBlocks, new BlockPos(blocks.sizeX(), blocks.sizeY(), blocks.sizeZ()));
-    }
-
-    private static Iterable<BlockPos> getFrontSide(SubGridBlocks blocks, Direction movement) {
-        BlockPos start = new BlockPos(
-                Math.max(movement.getStepX(), 0) * (blocks.sizeX() - 1),
-                Math.max(movement.getStepY(), 0) * (blocks.sizeY() - 1),
-                Math.max(movement.getStepZ(), 0) * (blocks.sizeZ() - 1)
-        );
-        BlockPos end = start.offset(
-                movement.getAxis() == Axis.X ? 0 : blocks.sizeX() - 1,
-                movement.getAxis() == Axis.Y ? 0 : blocks.sizeY() - 1,
-                movement.getAxis() == Axis.Z ? 0 : blocks.sizeZ() - 1
-        );
-        return BlockPos.betweenClosed(start, end);
-    }
-
-    public boolean checkCollision(Level level, BlockPos origin) {
-        int bottom = origin.getY();
-        int top = bottom + this.size.getY() - 1;
-
-        if (bottom >= level.getMinY()) { // readd maxY reactive to an interface like #hasTeleportToSpace or smt
-            MutableBlockPos pos = new MutableBlockPos();
-            LongIterator iterator = this.edgeBlocks.longIterator();
+        if (bottom >= level.minY) { // readd maxY reactive to an interface like #hasTeleportToSpace or smt
+            val pos = BlockPos.MutableBlockPos()
+            val iterator = this.edgeBlocks.longIterator()
 
             while (iterator.hasNext()) {
-                pos.set(iterator.nextLong());
-                pos.move(origin);
+                pos.set(iterator.nextLong())
+                pos.move(origin)
 
-                if (isCollidable(level.getBlockState(pos)))
-                    return true;
+                if (isCollidable(level.getBlockState(pos))) return true
             }
 
-            return false;
+            return false
         } else {
-            return true;
+            return true
         }
     }
 
-    private static boolean isCollidable(BlockState blockState) {
-        return !blockState.canBeReplaced();
+    companion object {
+        fun generate(blocks: SubGridBlocks, movement: Direction): SubGridMovementCollider {
+            val edgeBlocks: LongList = LongArrayList()
+            val pos = BlockPos.MutableBlockPos()
+            val backwards = movement.opposite
+            val depth = movement.axis.choose(blocks.sizeX, blocks.sizeY, blocks.sizeZ)
+
+            for (front in getFrontSide(blocks, movement)) {
+                pos.set(front)
+                var prevCollidable = false
+
+                repeat(depth) {
+                    if (isCollidable(blocks.getBlockState(pos))) {
+                        if (!prevCollidable) {
+                            edgeBlocks.add(pos.asLong())
+                        }
+
+                        prevCollidable = true
+                    } else {
+                        prevCollidable = false
+                    }
+
+                    pos.move(backwards)
+                }
+            }
+
+            return SubGridMovementCollider(edgeBlocks, BlockPos(blocks.sizeX, blocks.sizeY, blocks.sizeZ))
+        }
+
+        private fun getFrontSide(blocks: SubGridBlocks, movement: Direction): Iterable<BlockPos> {
+            val start = BlockPos(
+                max(movement.stepX, 0) * (blocks.sizeX - 1),
+                max(movement.stepY, 0) * (blocks.sizeY - 1),
+                max(movement.stepZ, 0) * (blocks.sizeZ - 1)
+            )
+
+            val end = start.offset(
+                if (movement.axis == Direction.Axis.X) 0 else blocks.sizeX - 1,
+                if (movement.axis == Direction.Axis.Y) 0 else blocks.sizeY - 1,
+                if (movement.axis == Direction.Axis.Z) 0 else blocks.sizeZ - 1
+            )
+
+            return BlockPos.betweenClosed(start, end)
+        }
+
+        private fun isCollidable(blockState: BlockState): Boolean {
+            return !blockState.canBeReplaced()
+        }
     }
 }
 

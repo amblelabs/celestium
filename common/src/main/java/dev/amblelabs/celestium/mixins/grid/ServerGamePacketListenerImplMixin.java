@@ -1,7 +1,7 @@
 package dev.amblelabs.celestium.mixins.grid;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import dev.amblelabs.celestium.api.GridRiderExtKt;
+import dev.amblelabs.celestium.api.GridRiderKt;
 import dev.amblelabs.celestium.world.grid.SubGridCollisions;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
@@ -29,11 +29,11 @@ public abstract class ServerGamePacketListenerImplMixin {
 
    @ModifyConstant(method = "handlePlayerPositionChange", constant = @Constant(doubleValue = 0.0625D))
    private double allowCheating(double original) {
-      return GridRiderExtKt.getAttachedGrid(this.player) != null ? original * 7 : original;
+      return GridRiderKt.getAttachedGrid(this.player) != null ? original * 7 : original;
    }
 
    @Inject(method = "isEntityCollidingWithAnythingNew", at = @At("HEAD"), cancellable = true)
    private void allowMoreCheating(LevelReader level, Entity entity, AABB oldAABB, double newX, double newY, double newZ, CallbackInfoReturnable<Boolean> cir) {
-      if (GridRiderExtKt.getAttachedGrid(this.player) != null) cir.setReturnValue(false);
+      if (GridRiderKt.getAttachedGrid(this.player) != null) cir.setReturnValue(false);
    }
 }

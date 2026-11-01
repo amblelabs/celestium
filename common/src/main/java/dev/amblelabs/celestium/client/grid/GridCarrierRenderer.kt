@@ -1,61 +1,63 @@
-package dev.amblelabs.celestium.client.grid;
+package dev.amblelabs.celestium.client.grid
 
-import com.mojang.blaze3d.vertex.PoseStack;
-import dev.amblelabs.celestium.world.grid.GridCarrier;
-import dev.amblelabs.celestium.world.grid.SubGridBlocks;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.entity.EntityRenderer;
-import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
-import net.minecraft.core.BlockPos;
-import net.minecraft.util.Mth;
-import net.minecraft.world.phys.AABB;
-import org.jspecify.annotations.NonNull;
+import com.mojang.blaze3d.vertex.PoseStack
+import dev.amblelabs.celestium.world.grid.GridCarrier
+import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.client.renderer.SubmitNodeCollector
+import net.minecraft.client.renderer.entity.EntityRenderer
+import net.minecraft.client.renderer.entity.EntityRendererProvider
+import net.minecraft.client.renderer.state.level.CameraRenderState
+import net.minecraft.core.BlockPos
+import net.minecraft.util.Mth
+import net.minecraft.world.phys.AABB
 
-public class GridCarrierRenderer extends EntityRenderer<GridCarrier, GridCarrierRenderState> {
-   private static final double CULL_BUFFER_SIZE = 3F;
+class GridCarrierRenderer(context: EntityRendererProvider.Context) : EntityRenderer<GridCarrier, GridCarrierRenderState>(context) {
+    override fun createRenderState(): GridCarrierRenderState {
+        return GridCarrierRenderState()
+    }
 
-   public GridCarrierRenderer(EntityRendererProvider.Context context) {
-      super(context);
-   }
+    override fun getBoundingBoxForCulling(carrier: GridCarrier, partialTicks: Float): AABB {
+        val x = Mth.lerp(partialTicks.toDouble(), carrier.xOld, carrier.x)
+        val y = Mth.lerp(partialTicks.toDouble(), carrier.yOld, carrier.y)
+        val z = Mth.lerp(partialTicks.toDouble(), carrier.zOld, carrier.z)
 
-   @Override
-   public @NonNull GridCarrierRenderState createRenderState() {
-      return new GridCarrierRenderState();
-   }
+        val blocks = carrier.grid().blocks
+        return AABB(x, y, z, x + blocks.sizeX + 1, y + blocks.sizeY + 1, z + blocks.sizeZ + 1)
+            .inflate(CULL_BUFFER_SIZE)
+    }
 
-   @Override
-   protected @NonNull AABB getBoundingBoxForCulling(GridCarrier carrier, float partialTicks) {
-      double x = Mth.lerp(partialTicks, carrier.xOld, carrier.getX());
-      double y = Mth.lerp(partialTicks, carrier.yOld, carrier.getY());
-      double z = Mth.lerp(partialTicks, carrier.zOld, carrier.getZ());
+    override fun extractRenderState(carrier: GridCarrier, state: GridCarrierRenderState, partialTicks: Float) {
+        super.extractRenderState(carrier, state, partialTicks)
 
-      SubGridBlocks blocks = carrier.grid().getBlocks();
-      return new AABB(x, y, z, x + blocks.sizeX() + 1, y + blocks.sizeY() + 1, z + blocks.sizeZ() + 1)
-              .inflate(CULL_BUFFER_SIZE);
-   }
+        val level = carrier.level()
+        if (level is ClientLevel) {
+            val mesh = GridMesh.of(carrier.grid(), level)
+            mesh.origin = BlockPos.containing(state.x + 0.5, state.y + 0.5, state.z + 0.5)
+            state.blocks = mesh.renderStates
+        }
+    }
 
-   @Override
-   public void extractRenderState(@NonNull GridCarrier carrier, @NonNull GridCarrierRenderState state, float partialTicks) {
-      super.extractRenderState(carrier, state, partialTicks);
+    override fun submit(
+        state: GridCarrierRenderState,
+        poseStack: PoseStack,
+        submitNodeCollector: SubmitNodeCollector,
+        camera: CameraRenderState
+    ) {
+        for (block in state.blocks) {
+            poseStack.pushPose()
+            poseStack.translate(
+                block.blockPos.x.toFloat(),
+                block.blockPos.y.toFloat(),
+                block.blockPos.z.toFloat()
+            )
+            submitNodeCollector.submitMovingBlock(poseStack, block, 0)
+            poseStack.popPose()
+        }
 
-      if (carrier.level() instanceof ClientLevel level) {
-         GridMesh mesh = GridMesh.of(carrier.grid(), level);
-         mesh.moveTo(BlockPos.containing(state.x + 0.5, state.y + 0.5, state.z + 0.5));
-         state.blocks = mesh.renderStates();
-      }
-   }
+        super.submit(state, poseStack, submitNodeCollector, camera)
+    }
 
-   @Override
-   public void submit(GridCarrierRenderState state, @NonNull PoseStack poseStack, @NonNull SubmitNodeCollector submitNodeCollector, @NonNull CameraRenderState camera) {
-      for (GridBlockRenderState block : state.blocks) {
-         poseStack.pushPose();
-         poseStack.translate(block.blockPos.getX(), block.blockPos.getY(), block.blockPos.getZ());
-         submitNodeCollector.submitMovingBlock(poseStack, block, 0);
-         poseStack.popPose();
-      }
-
-      super.submit(state, poseStack, submitNodeCollector, camera);
-   }
+    companion object {
+        private const val CULL_BUFFER_SIZE = 3.0
+    }
 }

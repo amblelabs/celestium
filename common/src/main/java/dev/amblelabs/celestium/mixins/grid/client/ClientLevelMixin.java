@@ -1,6 +1,6 @@
 package dev.amblelabs.celestium.mixins.grid.client;
 
-import dev.amblelabs.celestium.api.GridLevelExtKt;
+import dev.amblelabs.celestium.api.GridLevelKt;
 import dev.amblelabs.celestium.world.grid.GridCarrier;
 import dev.amblelabs.celestium.world.grid.SubGrid;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -16,8 +16,8 @@ public abstract class ClientLevelMixin {
    private void celestium$tickGridsFirst(CallbackInfo ci) {
       ClientLevel level = (ClientLevel) (Object) this;
 
-      for (SubGrid grid : GridLevelExtKt.snapshot(level)) {
-         GridCarrier carrier = grid.carrier();
+      for (SubGrid grid : GridLevelKt.snapshot(level)) {
+         GridCarrier carrier = grid.getCarrier();
          if (!carrier.isRemoved() && !level.tickRateManager().isEntityFrozen(carrier)) {
             level.guardEntityTick(level::tickNonPassenger, carrier);
          }

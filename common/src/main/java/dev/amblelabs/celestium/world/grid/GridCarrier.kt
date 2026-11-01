@@ -1,237 +1,239 @@
-package dev.amblelabs.celestium.world.grid;
+package dev.amblelabs.celestium.world.grid
 
-import dev.amblelabs.celestium.api.GridLevelExtKt;
-import dev.amblelabs.celestium.network.protocol.game.SubGridPayload;
-import dev.amblelabs.celestium.platform.Services;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.BlockPos.MutableBlockPos;
-import net.minecraft.core.Direction.AxisDirection;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.network.syncher.EntityDataAccessor;
-import net.minecraft.network.syncher.EntityDataSerializers;
-import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.network.syncher.SynchedEntityData.Builder;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.*;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.material.PushReaction;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
-import org.jetbrains.annotations.Nullable;
-import org.jspecify.annotations.NonNull;
+import dev.amblelabs.celestium.api.createSubGrid
+import dev.amblelabs.celestium.network.protocol.game.SubGridPayload
+import dev.amblelabs.celestium.platform.Services
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import net.minecraft.core.Holder
+import net.minecraft.core.registries.Registries
+import net.minecraft.network.syncher.EntityDataSerializers
+import net.minecraft.network.syncher.SynchedEntityData
+import net.minecraft.resources.ResourceKey
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.InteractionHand
+import net.minecraft.world.InteractionResult
+import net.minecraft.world.damagesource.DamageSource
+import net.minecraft.world.entity.*
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.biome.Biome
+import net.minecraft.world.level.material.PushReaction
+import net.minecraft.world.level.storage.ValueInput
+import net.minecraft.world.level.storage.ValueOutput
+import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
+import java.util.function.Consumer
+import java.util.function.Function
+import kotlin.math.max
 
-public class GridCarrier extends Entity {
+class GridCarrier(type: EntityType<*>, level: Level) : Entity(type, level) {
+    private val grid: SubGrid = level.createSubGrid(this)
 
-    private static final EntityDataAccessor<Direction> MOVEMENT_DIRECTION = SynchedEntityData.defineId(GridCarrier.class, EntityDataSerializers.DIRECTION);
-    private static final EntityDataAccessor<Float> MOVEMENT_SPEED = SynchedEntityData.defineId(GridCarrier.class, EntityDataSerializers.FLOAT);
+    private var movementCollider: SubGridMovementCollider? = null
+    private var placeInTicks = 0
 
-    private final SubGrid grid;
-
-    private @Nullable SubGridMovementCollider movementCollider;
-    private int placeInTicks;
-
-    public GridCarrier(EntityType<?> type, Level level) {
-        super(type, level);
-        this.grid = GridLevelExtKt.createSubGrid(level, this);
+    fun setMovement(direction: Direction, f: Float) {
+        this.getEntityData().set(MOVEMENT_DIRECTION, direction)
+        this.getEntityData().set(MOVEMENT_SPEED, f)
+        this.movementCollider = SubGridMovementCollider.generate(this.grid.blocks, direction)
     }
 
-    public void setMovement(Direction direction, float f) {
-        this.getEntityData().set(MOVEMENT_DIRECTION, direction);
-        this.getEntityData().set(MOVEMENT_SPEED, f);
-        this.movementCollider = SubGridMovementCollider.generate(this.grid.getBlocks(), direction);
+    fun clearMovement() {
+        this.getEntityData().set(MOVEMENT_SPEED, 0.0f)
+        this.movementCollider = null
     }
 
-    public void clearMovement() {
-        this.getEntityData().set(MOVEMENT_SPEED, 0.0F);
-        this.movementCollider = null;
+    fun grid(): SubGrid {
+        return this.grid
     }
 
-    public SubGrid grid() {
-        return this.grid;
+    override fun setPos(d: Double, e: Double, f: Double) {
+        super.setPos(d, e, f)
+        this.grid.updatePosition(d, e, f)
     }
 
-    @Override
-    public void setPos(double d, double e, double f) {
-        super.setPos(d, e, f);
-        if (this.grid != null) {
-            this.grid.updatePosition(d, e, f);
+    override fun tick() {
+        super.tick()
+        this.grid.blocks.tick(this.level(), this.position(), this.movementDirection)
+
+        if (!this.level().isClientSide) {
+            this.tickServer()
         }
     }
 
-    @Override
-    public void tick() {
-        super.tick();
-        this.grid.getBlocks().tick(this.level(), this.position(), this.getMovementDirection());
-
-        if (!this.level().isClientSide()) {
-            this.tickServer();
-        }
-    }
-
-    private void tickServer() {
-        float speed = this.getMovementSpeed();
-        float weight = this.grid.getBlocks().countSolidBlocks();
-        float moveSpeed = speed / (1f + weight * 0.001f);
+    private fun tickServer() {
+        val speed = this.movementSpeed
+        val weight = this.grid.blocks.countSolidBlocks().toFloat()
+        val moveSpeed = speed / (1f + weight * 0.001f)
 
         if (this.exceedsBuildHeight()) {
-            this.placeInTicks = 0;
+            this.placeInTicks = 0
             if (this.movementCollider != null) {
-                this.tickMovement(this.movementCollider, this.getMovementDirection(), moveSpeed);
+                this.tickMovement(this.movementCollider!!, this.movementDirection, moveSpeed)
             }
-            return;
+            return
         }
 
-        if (this.placeInTicks == 0 && speed == 0)
-            this.placeInTicks = 2;
+        if (this.placeInTicks == 0 && speed == 0f) this.placeInTicks = 2
 
         if (this.placeInTicks > 0) {
-            this.placeInTicks--;
+            this.placeInTicks--
             if (this.placeInTicks == 1) {
-                this.grid.getBlocks().place(this.blockPosition(), this.level());
+                this.grid.blocks.place(this.blockPosition(), this.level())
             } else if (this.placeInTicks == 0) {
-                this.discard();
+                this.discard()
             }
         } else if (this.movementCollider != null) {
-            this.tickMovement(this.movementCollider, this.getMovementDirection(), moveSpeed);
+            this.tickMovement(this.movementCollider!!, this.movementDirection, moveSpeed)
         }
     }
 
-    @Override
-    public @NonNull InteractionResult interact(@NonNull Player player, @NonNull InteractionHand hand, @NonNull Vec3 location) {
-        if (hand == InteractionHand.MAIN_HAND && player.getMainHandItem().isEmpty()) {
-            if (this.exceedsBuildHeight()) return InteractionResult.PASS;
-            this.clearMovement();
-            this.placeInTicks = 5;
-            return InteractionResult.SUCCESS;
+    override fun interact(player: Player, hand: InteractionHand, location: Vec3): InteractionResult {
+        if (hand == InteractionHand.MAIN_HAND && player.mainHandItem.isEmpty) {
+            if (this.exceedsBuildHeight()) return InteractionResult.PASS
+            this.clearMovement()
+            this.placeInTicks = 5
+            return InteractionResult.SUCCESS
         }
-        return super.interact(player, hand, location);
+        return super.interact(player, hand, location)
     }
 
-    @Override
-    public boolean isPickable() {
-        return !this.isRemoved();
+    override fun isPickable(): Boolean {
+        super.isPickable
+        return !this.isRemoved
     }
 
-    private void tickMovement(SubGridMovementCollider collider, Direction direction, float speed) {
-        Vec3 from = this.position();
-        Vec3 to = from.add(direction.getStepX() * speed, direction.getStepY() * speed, direction.getStepZ() * speed);
+    private fun tickMovement(collider: SubGridMovementCollider, direction: Direction, speed: Float) {
+        val from = this.position()
+        val to = from.add(
+            (direction.stepX * speed).toDouble(),
+            (direction.stepY * speed).toDouble(),
+            (direction.stepZ * speed).toDouble()
+        )
 
-        BlockPos start = this.getCollidingPos(from, direction);
-        BlockPos end = this.getCollidingPos(to, direction);
-        MutableBlockPos pos = start.mutable();
+        val start = this.getCollidingPos(from, direction)
+        val end = this.getCollidingPos(to, direction)
+        val pos = start.mutable()
 
-        while (!pos.equals(end)) {
-            pos.move(direction);
+        while (pos != end) {
+            pos.move(direction)
             if (collider.checkCollision(this.level(), pos)) {
-                this.setPos(Vec3.atLowerCornerOf(pos.relative(direction, -1)));
-                this.clearMovement();
-                this.placeInTicks = 5; // FIXME: magic
-                return;
+                this.setPos(Vec3.atLowerCornerOf(pos.relative(direction, -1)))
+                this.clearMovement()
+                this.placeInTicks = 5 // FIXME: magic
+                return
             }
         }
 
-        this.setPos(to);
+        this.setPos(to)
     }
 
-    private boolean exceedsBuildHeight() {
-        int top = this.blockPosition().getY() + this.grid.getBlocks().sizeY() - 1;
-        return top > this.level().getMaxY();
+    private fun exceedsBuildHeight(): Boolean {
+        val top = this.blockPosition().y + this.grid.blocks.sizeY - 1
+        return top > this.level().maxY
     }
 
-    private BlockPos getCollidingPos(Vec3 position, Direction direction) {
-        BlockPos pos = BlockPos.containing(position);
-        return direction.getAxisDirection() == AxisDirection.POSITIVE ? pos.relative(direction) : pos;
+    private fun getCollidingPos(position: Vec3, direction: Direction): BlockPos {
+        val pos = BlockPos.containing(position)
+        return if (direction.axisDirection == Direction.AxisDirection.POSITIVE) pos.relative(direction) else pos
     }
 
-    @Override
-    protected void defineSynchedData(Builder builder) {
-        builder.define(MOVEMENT_DIRECTION, Direction.NORTH);
-        builder.define(MOVEMENT_SPEED, 0f);
+    override fun defineSynchedData(builder: SynchedEntityData.Builder) {
+        builder.define(MOVEMENT_DIRECTION, Direction.NORTH)
+        builder.define(MOVEMENT_SPEED, 0f)
     }
 
-    @Override
-    protected @NonNull AABB makeBoundingBox(@NonNull Vec3 pos) {
-        if (this.grid == null)
-            return super.makeBoundingBox(pos);
-
-        SubGridBlocks blocks = this.grid.getBlocks();
-        return new AABB(pos.x, pos.y, pos.z, pos.x + blocks.sizeX(), pos.y + blocks.sizeY(), pos.z + blocks.sizeZ());
+    override fun makeBoundingBox(pos: Vec3): AABB {
+        val blocks = this.grid.blocks
+        return AABB(pos.x, pos.y, pos.z, pos.x + blocks.sizeX, pos.y + blocks.sizeY, pos.z + blocks.sizeZ)
     }
 
-    @Override
-    public @NonNull EntityDimensions getDimensions(@NonNull Pose pose) {
-        if (this.grid == null)
-            return super.getDimensions(pose);
-
-        SubGridBlocks blocks = this.grid.getBlocks();
-        return EntityDimensions.scalable(Math.max(blocks.sizeX(), blocks.sizeZ()), blocks.sizeY());
+    override fun getDimensions(pose: Pose): EntityDimensions {
+        val blocks = this.grid.blocks
+        return EntityDimensions.scalable(max(blocks.sizeX, blocks.sizeZ).toFloat(), blocks.sizeY.toFloat())
     }
 
-    @Override
-    protected void readAdditionalSaveData(ValueInput input) {
-        input.read("blocks", SubGridBlocks.CODEC).ifPresent(this.grid::setBlocks);
+    override fun readAdditionalSaveData(input: ValueInput) {
+        input.read("blocks", SubGridBlocks.CODEC).ifPresent { this.grid.blocks = it }
 
-        input.read("biome", ResourceKey.codec(Registries.BIOME)).flatMap(key -> this.registryAccess()
-                .lookupOrThrow(Registries.BIOME).get(key)).ifPresent(this.grid::setBiome);
+        input.read("biome", ResourceKey.codec(Registries.BIOME))
+            .flatMap(
+                Function { key: ResourceKey<Biome> ->
+                    this.registryAccess()
+                        .lookupOrThrow(Registries.BIOME).get(key)
+                }).ifPresent { this.grid.biome = it }
 
-        input.read("movement_direction", Direction.CODEC).ifPresentOrElse(dir ->
-                this.setMovement(dir, input.getFloatOr("movement_speed", 0f)), this::clearMovement);
+        input.read("movement_direction", Direction.CODEC).ifPresentOrElse(Consumer { dir: Direction ->
+            this.setMovement(
+                dir,
+                input.getFloatOr("movement_speed", 0f)
+            )
+        }, this::clearMovement)
     }
 
-    @Override
-    protected void addAdditionalSaveData(ValueOutput output) {
-        output.store("blocks", SubGridBlocks.CODEC, this.grid.getBlocks());
-        this.grid.getBiome().unwrapKey().ifPresent(key -> output.store("biome", ResourceKey.codec(Registries.BIOME), key));
-        output.store("movement_direction", Direction.CODEC, this.getMovementDirection());
-        output.putFloat("movement_speed", this.getMovementSpeed());
+    override fun addAdditionalSaveData(output: ValueOutput) {
+        output.store("blocks", SubGridBlocks.CODEC, this.grid.blocks)
+
+        this.grid.biome.unwrapKey().ifPresent(Consumer { key: ResourceKey<Biome> ->
+            output.store(
+                "biome", ResourceKey.codec(
+                    Registries.BIOME
+                ), key
+            )
+        })
+
+        output.store(
+            "movement_direction", Direction.CODEC,
+            this.movementDirection
+        )
+
+        output.putFloat("movement_speed", this.movementSpeed)
     }
 
-    private float getMovementSpeed() {
-        return this.getEntityData().get(MOVEMENT_SPEED);
+    private val movementSpeed: Float
+        get() = this.getEntityData()
+            .get(MOVEMENT_SPEED)
+
+    private val movementDirection: Direction
+        get() = this.getEntityData()
+            .get<Direction>(MOVEMENT_DIRECTION)
+
+    override fun startSeenByPlayer(player: ServerPlayer) {
+        super.startSeenByPlayer(player)
+
+        Services.PLATFORM.sendToPlayer(
+            player,
+            SubGridPayload(this.id, this.grid.blocks.copy(), this.grid.biome)
+        )
     }
 
-    private Direction getMovementDirection() {
-        return this.getEntityData().get(MOVEMENT_DIRECTION);
+    override fun createInterpolationHandler(): InterpolationHandler {
+        return LinearInterpolationHandler.create(this)
     }
 
-    @Override
-    public void startSeenByPlayer(@NonNull ServerPlayer player) {
-        super.startSeenByPlayer(player);
-
-        Services.PLATFORM.sendToPlayer(player, new SubGridPayload(this.getId(), this.grid.getBlocks().copy(), this.grid.getBiome()));
+    override fun shouldRenderAtSqrDistance(distance: Double): Boolean {
+        return true
     }
 
-    @Override
-    protected @NonNull InterpolationHandler createInterpolationHandler() {
-        return LinearInterpolationHandler.create(this);
+    override fun hurtServer(level: ServerLevel, source: DamageSource, damage: Float): Boolean {
+        return false
     }
 
-    @Override
-    public boolean shouldRenderAtSqrDistance(double distance) {
-        return true;
+    override fun getPistonPushReaction(): PushReaction {
+        return PushReaction.IGNORE_ENTITY
     }
 
-    @Override
-    public boolean hurtServer(@NonNull ServerLevel level, @NonNull DamageSource source, float damage) {
-        return false;
+    override fun isIgnoringBlockTriggers(): Boolean {
+        return true
     }
 
-    @Override
-    public @NonNull PushReaction getPistonPushReaction() {
-        return PushReaction.IGNORE_ENTITY;
-    }
+    companion object {
+        private val MOVEMENT_DIRECTION =
+            SynchedEntityData.defineId(GridCarrier::class.java, EntityDataSerializers.DIRECTION)
 
-    @Override
-    public boolean isIgnoringBlockTriggers() {
-        return true;
+        private val MOVEMENT_SPEED =
+            SynchedEntityData.defineId(GridCarrier::class.java, EntityDataSerializers.FLOAT)
     }
 }

@@ -1,167 +1,200 @@
-package dev.amblelabs.celestium.world.grid;
+package dev.amblelabs.celestium.world.grid
 
-import dev.amblelabs.celestium.Celestium;
-import dev.amblelabs.celestium.init.CelestiumBlocks;
-import dev.amblelabs.celestium.world.level.block.FloataterBlock;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue;
-import it.unimi.dsi.fastutil.longs.LongIterator;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import it.unimi.dsi.fastutil.longs.LongSet;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
+import dev.amblelabs.celestium.Celestium
+import dev.amblelabs.celestium.init.CelestiumBlocks
+import dev.amblelabs.celestium.world.level.block.FloataterBlock
+import it.unimi.dsi.fastutil.longs.*
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import net.minecraft.core.Vec3i
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
+import net.minecraft.world.phys.shapes.BooleanOp
+import net.minecraft.world.phys.shapes.Shapes
+import net.minecraft.world.phys.shapes.VoxelShape
+import java.util.function.Consumer
+import kotlin.math.max
+import kotlin.math.min
 
-import java.util.function.Consumer;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.BlockPos.MutableBlockPos;
-import net.minecraft.core.Vec3i;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.gamerules.GameRules;
-import net.minecraft.world.phys.shapes.BooleanOp;
-import net.minecraft.world.phys.shapes.Shapes;
-import net.minecraft.world.phys.shapes.VoxelShape;
-import org.jetbrains.annotations.Nullable;
+@JvmRecord
+data class SubGridCapture(
+    val blocks: SubGridBlocks,
+    val mask: LongSet,
+    val minPos: BlockPos,
+    val size: Vec3i,
+    val engines: Int
+) {
+    fun remove(level: Level) {
+        this.forEachPos { pos: BlockPos ->
+            val state = level.getBlockState(pos)
+            if (state.hasBlockEntity()) {
+                level.destroyBlock(pos, true)
+            } else {
+                level.setBlock(
+                    pos,
+                    state.fluidState.createLegacyBlock(),
+                    Block.UPDATE_KNOWN_SHAPE or Block.UPDATE_CLIENTS
+                )
+            }
+        }
 
-public record SubGridCapture(SubGridBlocks blocks, LongSet mask, BlockPos minPos, Vec3i size, int engines) {
-    private static final Direction[] DIRECTIONS = Direction.values();
+        this.forEachPos { pos: BlockPos? ->
+            level.updateNeighborsAt(
+                pos!!,
+                level.getBlockState(pos).block
+            )
+        }
+    }
 
-    @Nullable
-    public static SubGridCapture scan(Level level, BlockPos blockPos, Direction movement) {
-        Long2ObjectMap<BlockState> captured = new Long2ObjectOpenHashMap<>();
-        LongArrayFIFOQueue queue = new LongArrayFIFOQueue();
+    private fun forEachPos(consumer: Consumer<BlockPos>) {
+        val pos = BlockPos.MutableBlockPos()
+        val iterator = this.mask.longIterator()
 
-        captured.put(blockPos.asLong(), level.getBlockState(blockPos));
-        queue.enqueue(blockPos.asLong());
+        while (iterator.hasNext()) {
+            pos.set(iterator.nextLong())
+            consumer.accept(pos)
+        }
+    }
 
-        int minX = blockPos.getX();
-        int minY = blockPos.getY();
-        int minZ = blockPos.getZ();
-        int maxX = blockPos.getX();
-        int maxY = blockPos.getY();
-        int maxZ = blockPos.getZ();
+    companion object {
+        private val DIRECTIONS = Direction.entries.toTypedArray()
 
-        MutableBlockPos pos = new MutableBlockPos();
-        MutableBlockPos neighbor = new MutableBlockPos();
-        int sizeLimit = level.getServer().getGameRules().get(Celestium.MAX_FLOATATER_SIZE);
+        fun scan(level: Level, blockPos: BlockPos, movement: Direction): SubGridCapture? {
+            val captured: Long2ObjectMap<BlockState> = Long2ObjectOpenHashMap()
+            val queue = LongArrayFIFOQueue()
 
-        while (!queue.isEmpty()) {
-            long p = queue.dequeueLastLong();
-            pos.set(p);
+            captured.put(blockPos.asLong(), level.getBlockState(blockPos))
+            queue.enqueue(blockPos.asLong())
 
-            BlockState state = captured.get(p);
-            minX = Math.min(minX, pos.getX());
-            minY = Math.min(minY, pos.getY());
-            minZ = Math.min(minZ, pos.getZ());
-            maxX = Math.max(maxX, pos.getX());
-            maxY = Math.max(maxY, pos.getY());
-            maxZ = Math.max(maxZ, pos.getZ());
+            var minX = blockPos.x
+            var minY = blockPos.y
+            var minZ = blockPos.z
+            var maxX = blockPos.x
+            var maxY = blockPos.y
+            var maxZ = blockPos.z
 
-            if (maxX - minX + 1 > sizeLimit || maxY - minY + 1 > sizeLimit || maxZ - minZ + 1 > sizeLimit)
-                return null;
+            val pos = BlockPos.MutableBlockPos()
+            val neighbor = BlockPos.MutableBlockPos()
+            val sizeLimit: Int = level.server!!.gameRules.get(Celestium.MAX_FLOATATER_SIZE)
 
-            VoxelShape shape = state.getShape(level, pos);
+            while (!queue.isEmpty) {
+                val p = queue.dequeueLastLong()
+                pos.set(p)
 
-            for (Direction direction : DIRECTIONS) {
-                neighbor.setWithOffset(pos, direction);
-                long neighborPacked = neighbor.asLong();
+                val state = captured.get(p)
+                minX = min(minX, pos.x)
+                minY = min(minY, pos.y)
+                minZ = min(minZ, pos.z)
+                maxX = max(maxX, pos.x)
+                maxY = max(maxY, pos.y)
+                maxZ = max(maxZ, pos.z)
 
-                if (!captured.containsKey(neighborPacked)) {
-                    BlockState neighborState = level.getBlockState(neighbor);
-                    VoxelShape neighborShape = neighborState.getShape(level, neighbor);
+                if (maxX - minX + 1 > sizeLimit || maxY - minY + 1 > sizeLimit || maxZ - minZ + 1 > sizeLimit) return null
 
-                    boolean pushedInFront = direction == movement && !neighborState.canBeReplaced();
-                    if (pushedInFront || isConnected(direction, shape, neighborShape, state, neighborState)) {
-                        queue.enqueue(neighborPacked);
-                        captured.put(neighborPacked, neighborState);
+                val shape = state.getShape(level, pos)
+
+                for (direction in DIRECTIONS) {
+                    neighbor.setWithOffset(pos, direction)
+                    val neighborPacked = neighbor.asLong()
+
+                    if (!captured.containsKey(neighborPacked)) {
+                        val neighborState = level.getBlockState(neighbor)
+                        val neighborShape = neighborState.getShape(level, neighbor)
+
+                        val pushedInFront = direction == movement && !neighborState.canBeReplaced()
+                        if (pushedInFront || isConnected(direction, shape, neighborShape, state, neighborState)) {
+                            queue.enqueue(neighborPacked)
+                            captured.put(neighborPacked, neighborState)
+                        }
                     }
                 }
             }
-        }
 
-        int sizeX = maxX - minX + 1;
-        int sizeY = maxY - minY + 1;
-        int sizeZ = maxZ - minZ + 1;
+            val sizeX = maxX - minX + 1
+            val sizeY = maxY - minY + 1
+            val sizeZ = maxZ - minZ + 1
 
-        SubGridBlocks blocks = new SubGridBlocks(sizeX, sizeY, sizeZ);
-        int engines = 0;
+            val blocks = SubGridBlocks(sizeX, sizeY, sizeZ)
+            var engines = 0
 
-        for (Entry<BlockState> entry : Long2ObjectMaps.fastIterable(captured)) {
-            pos.set(entry.getLongKey());
-            BlockState state = entry.getValue().trySetValue(BlockStateProperties.WATERLOGGED, false);
+            for (entry in Long2ObjectMaps.fastIterable<BlockState?>(captured)) {
+                pos.set(entry.longKey)
+                val state = entry.value!!.trySetValue(BlockStateProperties.WATERLOGGED, false)
 
-            if (state.is(CelestiumBlocks.FLOATATER)
-                    && state.getValue(FloataterBlock.FACING) == movement
-                    && state.getValue(FloataterBlock.TRIGGERED)) {
-                engines++;
+                if (state.`is`(CelestiumBlocks.FLOATATER)
+                    && state.getValue(FloataterBlock.FACING) == movement && state.getValue(
+                        FloataterBlock.TRIGGERED
+                    )
+                ) {
+                    engines++
+                }
+
+                if (state.block is FlyingTickable) blocks.markTickable(
+                    BlockPos(
+                        pos.x - minX,
+                        pos.y - minY,
+                        pos.z - minZ
+                    )
+                )
+
+                if (!state.hasBlockEntity()) blocks.setBlockState(
+                    pos.x - minX,
+                    pos.y - minY,
+                    pos.z - minZ,
+                    state
+                )
             }
 
-            if (state.getBlock() instanceof FlyingTickable)
-                blocks.markTickable(new BlockPos(pos.getX() - minX, pos.getY() - minY, pos.getZ() - minZ));
-
-            if (!state.hasBlockEntity())
-                blocks.setBlockState(pos.getX() - minX, pos.getY() - minY, pos.getZ() - minZ, state);
+            return SubGridCapture(
+                blocks,
+                LongOpenHashSet(captured.keys),
+                BlockPos(minX, minY, minZ),
+                Vec3i(sizeX, sizeY, sizeZ),
+                engines
+            )
         }
 
-        return new SubGridCapture(blocks, new LongOpenHashSet(captured.keySet()), new BlockPos(minX, minY, minZ), new Vec3i(sizeX, sizeY, sizeZ), engines);
-    }
-
-    private static boolean isConnected(Direction direction, VoxelShape shape, VoxelShape neighborShape, BlockState state, BlockState neighborState) {
-        if (!isStickyInDirection(state, direction) && !isStickyInDirection(neighborState, direction.getOpposite())) {
-            return areShapesConnected(direction, shape, neighborShape) && !isNonStickyInDirection(state, direction) && !isNonStickyInDirection(neighborState, direction.getOpposite());
-        } else {
-            return true;
+        private fun isConnected(
+            direction: Direction,
+            shape: VoxelShape,
+            neighborShape: VoxelShape,
+            state: BlockState,
+            neighborState: BlockState
+        ): Boolean {
+            return !(!isStickyInDirection(state, direction) && !isStickyInDirection(
+                neighborState,
+                direction.opposite
+            )) || areShapesConnected(direction, shape, neighborShape) && !isNonStickyInDirection(
+                state,
+                direction
+            ) && !isNonStickyInDirection(neighborState, direction.opposite)
         }
-    }
 
-    private static boolean areShapesConnected(Direction direction, VoxelShape shape, VoxelShape neighborShape) {
-        if (shape != Shapes.empty() && neighborShape != Shapes.empty()) {
-            VoxelShape face = shape.getFaceShape(direction);
-            VoxelShape neighborFace = neighborShape.getFaceShape(direction.getOpposite());
-            return face == Shapes.block() && neighborFace == Shapes.block() || Shapes.joinIsNotEmpty(face, neighborFace, BooleanOp.AND);
-        } else {
-            return false;
-        }
-    }
-
-    private static boolean isNonStickyInDirection(BlockState state, Direction direction) {
-        return state.is(CelestiumBlocks.FLOATATER) && state.getValue(FloataterBlock.FACING) != direction;
-    }
-
-    private static boolean isStickyInDirection(BlockState state, Direction direction) {
-        if (!state.is(Blocks.SLIME_BLOCK) && !state.is(Blocks.HONEY_BLOCK)) {
-            return state.is(Blocks.STICKY_PISTON) && state.getValue(BlockStateProperties.FACING) == direction
-                    || state.is(CelestiumBlocks.FLOATATER) && state.getValue(FloataterBlock.FACING) == direction;
-        } else {
-            return true;
-        }
-    }
-
-    public void remove(Level level) {
-        this.forEachPos(pos -> {
-            BlockState state = level.getBlockState(pos);
-            if (state.hasBlockEntity()) {
-                level.destroyBlock(pos, true);
+        private fun areShapesConnected(direction: Direction, shape: VoxelShape, neighborShape: VoxelShape): Boolean {
+            if (shape !== Shapes.empty() && neighborShape !== Shapes.empty()) {
+                val face = shape.getFaceShape(direction)
+                val neighborFace = neighborShape.getFaceShape(direction.opposite)
+                return face === Shapes.block() && neighborFace === Shapes.block() || Shapes.joinIsNotEmpty(
+                    face,
+                    neighborFace,
+                    BooleanOp.AND
+                )
             } else {
-                level.setBlock(pos, state.getFluidState().createLegacyBlock(), Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_CLIENTS);
+                return false
             }
-        });
+        }
 
-        this.forEachPos(pos -> level.updateNeighborsAt(pos, level.getBlockState(pos).getBlock()));
-    }
+        private fun isNonStickyInDirection(state: BlockState, direction: Direction?): Boolean {
+            return state.`is`(CelestiumBlocks.FLOATATER) && state.getValue(FloataterBlock.FACING) != direction
+        }
 
-    private void forEachPos(Consumer<BlockPos> consumer) {
-        MutableBlockPos pos = new MutableBlockPos();
-        LongIterator iterator = this.mask.longIterator();
-
-        while (iterator.hasNext()) {
-            pos.set(iterator.nextLong());
-            consumer.accept(pos);
+        private fun isStickyInDirection(state: BlockState, direction: Direction?): Boolean {
+            return !(!state.`is`(Blocks.SLIME_BLOCK) && !state.`is`(Blocks.HONEY_BLOCK))
+                    || (state.`is`(Blocks.STICKY_PISTON) && state.getValue(BlockStateProperties.FACING) == direction
+                    || state.`is`(CelestiumBlocks.FLOATATER) && state.getValue(FloataterBlock.FACING) == direction)
         }
     }
 }

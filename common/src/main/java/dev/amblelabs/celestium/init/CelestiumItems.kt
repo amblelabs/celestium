@@ -1,35 +1,46 @@
-package dev.amblelabs.celestium.init;
+package dev.amblelabs.celestium.init
 
-import dev.amblelabs.celestium.world.item.PocketStarItem;
-import dev.amblelabs.celestium.platform.Services;
-import dev.amblelabs.celestium.platform.services.PlatformHelper;
-import net.minecraft.core.Holder;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.level.block.Block;
+import dev.amblelabs.celestium.platform.Services
+import dev.amblelabs.celestium.platform.services.PlatformHelper
+import dev.amblelabs.celestium.world.item.PocketStarItem
+import net.minecraft.core.Holder
+import net.minecraft.core.registries.Registries
+import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
+import net.minecraft.world.item.BlockItem
+import net.minecraft.world.item.Item
+import net.minecraft.world.level.block.Block
+import java.util.function.Function
 
-import java.util.function.Function;
+object CelestiumItems {
+    private val REGISTRAR: PlatformHelper.Registrar<Item> = Services.PLATFORM.createRegistrar(Registries.ITEM)
 
-public class CelestiumItems {
+    val POCKET_STAR: Holder<Item> = item("pocket_star", ::PocketStarItem)
 
-    private static final PlatformHelper.Registrar<Item> REGISTRAR = Services.PLATFORM.createRegistrar(Registries.ITEM);
+    val FLOATATER: Holder<Item> = blockItem("floatater", CelestiumBlocks.FLOATATER)
 
-    public static final Holder<Item> POCKET_STAR = item("pocket_star", PocketStarItem::new);
-
-    public static final Holder<Item> FLOATATER = blockItem("floatater", CelestiumBlocks.FLOATATER);
-
-    private static Holder<Item> item(String name, Function<Item.Properties, Item> factory) {
-        return REGISTRAR.registerHolder(name, identifier -> factory.apply(new Item.Properties()
-                .setId(ResourceKey.create(Registries.ITEM, identifier))));
+    private fun item(name: String, factory: Function<Item.Properties, Item>): Holder<Item> {
+        return REGISTRAR.registerHolder(name) { identifier: Identifier ->
+            factory.apply(
+                Item.Properties()
+                    .setId(ResourceKey.create(Registries.ITEM, identifier))
+            )
+        }
     }
 
-    private static Holder<Item> blockItem(String name, Holder<Block> block) {
-        return item(name, properties -> new BlockItem(block.value(), properties.useBlockDescriptionPrefix()));
+    private fun blockItem(name: String, block: Holder<Block>): Holder<Item> {
+        return item(
+            name
+        ) { properties: Item.Properties ->
+            BlockItem(
+                block.value(),
+                properties.useBlockDescriptionPrefix()
+            )
+        }
     }
 
-    public static void register() {
-        REGISTRAR.registerAll();
+    @JvmStatic
+    fun register() {
+        REGISTRAR.registerAll()
     }
 }

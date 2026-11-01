@@ -1,6 +1,6 @@
 package dev.amblelabs.celestium.mixins.grid;
 
-import dev.amblelabs.celestium.api.GridLevelExtKt;
+import dev.amblelabs.celestium.api.GridLevelKt;
 import dev.amblelabs.celestium.world.grid.GridCarrier;
 import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,11 +18,11 @@ public abstract class ServerLevelEntityCallbacksMixin {
 
    @Inject(method = "onTrackingStart(Lnet/minecraft/world/entity/Entity;)V", at = @At("HEAD"))
    private void celestium$trackGrid(Entity entity, CallbackInfo ci) {
-      if (entity instanceof GridCarrier carrier) GridLevelExtKt.trackGrid(carrier.level(), carrier);
+      if (entity instanceof GridCarrier carrier) GridLevelKt.trackGrid(carrier.level(), carrier);
    }
 
    @Inject(method = "onTrackingEnd(Lnet/minecraft/world/entity/Entity;)V", at = @At("HEAD"))
    private void celestium$untrackGrid(Entity entity, CallbackInfo ci) {
-      if (entity instanceof GridCarrier carrier) GridLevelExtKt.untrackGrid(carrier.level(), carrier);
+      if (entity instanceof GridCarrier carrier) GridLevelKt.untrackGrid(carrier.level(), carrier);
    }
 }

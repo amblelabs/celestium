@@ -1,6 +1,6 @@
 package dev.amblelabs.celestium.mixins.grid;
 
-import dev.amblelabs.celestium.api.GridLevelExtKt;
+import dev.amblelabs.celestium.api.GridLevelKt;
 import dev.amblelabs.celestium.world.grid.GridCarrier;
 import dev.amblelabs.celestium.world.grid.SubGrid;
 import net.minecraft.server.level.ServerLevel;
@@ -18,8 +18,8 @@ public abstract class ServerLevelMixin {
    private void celestium$tickGridsFirst(BooleanSupplier haveTime, CallbackInfo ci) {
       ServerLevel level = (ServerLevel) (Object) this;
 
-      for (SubGrid grid : GridLevelExtKt.snapshot(level)) {
-         GridCarrier carrier = grid.carrier();
+      for (SubGrid grid : GridLevelKt.snapshot(level)) {
+         GridCarrier carrier = grid.getCarrier();
          if (!carrier.isRemoved() && !level.tickRateManager().isEntityFrozen(carrier))
              level.guardEntityTick(level::tickNonPassenger, carrier);
       }

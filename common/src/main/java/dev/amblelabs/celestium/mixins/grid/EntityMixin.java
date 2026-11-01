@@ -4,7 +4,7 @@ import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
-import dev.amblelabs.celestium.api.GridLevelExtKt;
+import dev.amblelabs.celestium.api.GridLevelKt;
 import dev.amblelabs.celestium.api.GridRider;
 import dev.amblelabs.celestium.world.grid.SubGrid;
 import dev.amblelabs.celestium.world.grid.SubGridCollisions;
@@ -79,13 +79,13 @@ public abstract class EntityMixin implements GridRider {
       if (this.attachedGridTimeout > 0) {
          if (--this.attachedGridTimeout == 0) {
             this.attachedGrid = null;
-         } else if (this.attachedGrid != null && this.attachedGrid.carrier().isRemoved()) {
+         } else if (this.attachedGrid != null && this.attachedGrid.getCarrier().isRemoved()) {
             this.attachedGrid = null;
          }
       }
 
       if (this.pendingGrid != null) {
-         SubGrid grid = GridLevelExtKt.grids(this.level()).get(this.pendingGrid);
+         SubGrid grid = GridLevelKt.grids(this.level()).get(this.pendingGrid);
          if (grid != null) {
             this.reseatOn(grid);
             this.attachedGrid = grid;
@@ -106,7 +106,7 @@ public abstract class EntityMixin implements GridRider {
    private void reseatOn(SubGrid grid) {
       Vec3 offset = this.pendingOffset;
       if (offset != null && !this.level().isClientSide()) {
-         Vec3 target = grid.carrier().position().add(offset);
+         Vec3 target = grid.getCarrier().position().add(offset);
          if (this.asEntity() instanceof ServerPlayer player) {
             player.connection.teleport(target.x, target.y, target.z, player.getYRot(), player.getXRot());
          } else {
@@ -119,7 +119,7 @@ public abstract class EntityMixin implements GridRider {
    private void saveAttachedGrid(ValueOutput output, CallbackInfo ci) {
       SubGrid grid = this.attachedGrid != null ? this.attachedGrid : SubGridCollisions.findGridBelow(this.asEntity());
       UUID gridId = grid != null ? grid.id() : this.pendingGrid;
-      Vec3 offset = grid != null ? this.position().subtract(grid.carrier().position()) : this.pendingOffset;
+      Vec3 offset = grid != null ? this.position().subtract(grid.getCarrier().position()) : this.pendingOffset;
 
       if (gridId != null) {
          output.store(CELESTIUM$ATTACHED_GRID_KEY, UUIDUtil.CODEC, gridId);
@@ -176,12 +176,12 @@ public abstract class EntityMixin implements GridRider {
          return movement;
       } else {
          SubGridCollisions.Result result = SubGridCollisions.collide(this.asEntity(), movement, this.getBoundingBox(), this.level());
-         if (result.grid() != null) {
-            this.attachedGrid = result.grid();
+         if (result.grid != null) {
+            this.attachedGrid = result.grid;
             this.attachedGridTimeout = 30;
          }
 
-         return result.movement();
+         return result.movement;
       }
    }
 

@@ -1,42 +1,46 @@
-package dev.amblelabs.celestium;
+package dev.amblelabs.celestium
 
-import dev.amblelabs.celestium.init.*;
-import net.minecraft.core.Registry;
-import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import dev.amblelabs.celestium.init.CelestiumBlocks
+import dev.amblelabs.celestium.init.CelestiumEntityTypes.initialize
+import dev.amblelabs.celestium.init.CelestiumItems
+import dev.amblelabs.celestium.init.CelestiumSounds
+import net.minecraft.core.Registry
+import net.minecraft.core.particles.ParticleType
+import net.minecraft.core.particles.SimpleParticleType
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.resources.Identifier
+import net.minecraft.world.level.gamerules.GameRule
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
-import net.minecraft.world.level.gamerules.GameRule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+object Celestium {
+    const val MOD_ID: String = "celestium"
 
-// This class is part of the common project meaning it is shared between all supported loaders. Code written here can only
-// import and access the vanilla codebase, libraries used by vanilla, and optionally third party libraries that provide
-// common compatible binaries. This means common code can not directly use loader specific concepts such as Forge events
-// however it will be compatible with all supported mod loaders.
-public class Celestium {
-    
-    public static final String MOD_ID = "celestium";
-    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    @JvmField
+    val LOGGER: Logger = LoggerFactory.getLogger(MOD_ID)
 
-    public static Identifier id(String s) {
-        return Identifier.fromNamespaceAndPath(MOD_ID, s);
+    @JvmStatic
+    fun id(s: String): Identifier {
+        return Identifier.fromNamespaceAndPath(MOD_ID, s)
     }
 
-    public static final SimpleParticleType THRUSTER = new SimpleParticleType(false) {};
-    public static GameRule<Integer> MAX_FLOATATER_SIZE;
+    @JvmField
+    val THRUSTER: SimpleParticleType = object : SimpleParticleType(false) {}
 
-    public static void init() {
-        CelestiumSounds.register();
-        CelestiumBlocks.register();
-        CelestiumItems.register();
+    lateinit var MAX_FLOATATER_SIZE: GameRule<Int>
 
-        CelestiumEntityTypes.initialize();
+    @JvmStatic
+    fun init() {
+        CelestiumSounds.register()
+        CelestiumBlocks.register()
+        CelestiumItems.register()
+
+        initialize()
 
         Registry.register(
-                BuiltInRegistries.PARTICLE_TYPE,
-                Identifier.fromNamespaceAndPath(MOD_ID, "thruster"),
-                THRUSTER
-        );
+            BuiltInRegistries.PARTICLE_TYPE,
+            Identifier.fromNamespaceAndPath(MOD_ID, "thruster"),
+            THRUSTER
+        )
     }
 }

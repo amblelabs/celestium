@@ -1,16 +1,17 @@
-package dev.amblelabs.celestium.init;
+package dev.amblelabs.celestium.init
 
-import dev.amblelabs.celestium.Celestium;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.entity.EntityType;
+import dev.amblelabs.celestium.Celestium
+import net.minecraft.core.registries.Registries
+import net.minecraft.resources.ResourceKey
+import net.minecraft.world.entity.EntityType
 
-public class CelestiumEntityTypeIds {
+object CelestiumEntityTypeIds {
+    @JvmField
+    val POCKET_STAR: ResourceKey<EntityType<*>> = create("pocket_star")
+    @JvmField
+    val GRID_CARRIER: ResourceKey<EntityType<*>> = create("grid_carrier")
 
-    public static final ResourceKey<EntityType<?>> POCKET_STAR = create("pocket_star");
-    public static final ResourceKey<EntityType<?>> GRID_CARRIER = create("grid_carrier");
-
-    private static ResourceKey<EntityType<?>> create(String name) {
-        return ResourceKey.create(Registries.ENTITY_TYPE, Celestium.id(name));
+    private fun create(name: String): ResourceKey<EntityType<*>> {
+        return ResourceKey.create(Registries.ENTITY_TYPE, Celestium.id(name))
     }
 }

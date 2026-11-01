@@ -1,17 +1,30 @@
-package dev.amblelabs.celestium.api;
+@file:Suppress("FunctionName")
 
-import dev.amblelabs.celestium.world.grid.SubGrid;
-import org.jetbrains.annotations.Nullable;
+package dev.amblelabs.celestium.api
 
-import java.util.UUID;
+import dev.amblelabs.celestium.world.grid.SubGrid
+import net.minecraft.world.entity.Entity
+import java.util.*
 
-public interface GridRider {
-    int SERVER_RELOAD_TIMEOUT = 40;
-    int CLIENT_RELOAD_TIMEOUT = 60;
+interface GridRider {
+    fun `celestium$pendingGrid`(): UUID?
 
-    @Nullable UUID celestium$pendingGrid();
+    fun `celestium$attachedGrid`(): SubGrid?
 
-    @Nullable SubGrid celestium$attachedGrid();
+    fun `celestium$waitForGrid`(gridId: UUID?, timeout: Int)
 
-    void celestium$waitForGrid(UUID gridId, int timeout);
+    companion object {
+        const val SERVER_RELOAD_TIMEOUT: Int = 40
+        const val CLIENT_RELOAD_TIMEOUT: Int = 60
+    }
 }
+
+fun Entity.waitForGrid(gridId: UUID, timeout: Int) {
+    (this as GridRider).`celestium$waitForGrid`(gridId, timeout)
+}
+
+val Entity.pendingGrid: UUID?
+    get() = (this as GridRider).`celestium$pendingGrid`()
+
+val Entity.attachedGrid: SubGrid?
+    get() = (this as GridRider).`celestium$attachedGrid`()
